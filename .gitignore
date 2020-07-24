@@ -1,0 +1,7 @@
+data_cats_dogs/*
+
+models_example/*
+
+plot_train/*
+
+!**/__pycache__/
