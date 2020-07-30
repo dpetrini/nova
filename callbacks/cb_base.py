@@ -30,7 +30,7 @@ class BaseCB(Callbacks):
     def __repr__(self):
         return 'BASE'
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size):
+    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
         self.train_step = len(train_dataloader)
         self.val_step = len(val_dataloader)

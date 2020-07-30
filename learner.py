@@ -27,8 +27,10 @@ def train_and_validate(model, train_dataloader, val_dataloader,
     calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
 
     if not cb.begin_train_val(epochs, train_dataloader,
-                              val_dataloader, mini_batch):
+                              val_dataloader, mini_batch, optimizer):
         return
+
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
 
     for epoch in range(first_epoch, epochs+1):
         model.train()
@@ -76,6 +78,8 @@ def train_and_validate(model, train_dataloader, val_dataloader,
                 cb.after_step_val(inputs.size(0), labels, outputs)
 
         cb.after_epoch(model, train_acc, train_loss, val_acc, val_loss)
+
+        # scheduler.step()
 
     cb.after_train_val()
 

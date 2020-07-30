@@ -10,9 +10,9 @@ class CallbackHandler():
         print()
         self.cbs = cbs if cbs else []
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size):
+    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
         for cb in self.cbs:
-            cb.begin_train_val(epochs, train_dataloader, val_dataloader, bs_size)
+            cb.begin_train_val(epochs, train_dataloader, val_dataloader, bs_size, optimizer)
         return True
 
     # def update_LR(self, epoch, model, optimizer, stages):

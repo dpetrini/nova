@@ -5,3 +5,7 @@ models_example/*
 plot_train/*
 
 !**/__pycache__/
+
+__pycache__/*
+callbacks/__pycache__/*
+util/__pycache__/*
