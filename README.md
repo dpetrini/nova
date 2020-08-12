@@ -7,6 +7,8 @@ Idea is to keep simple.
 
 It is totally based in callbaks to insert new features like AUC accounting and plots for instance.
 
+There is available an example of Base callback usage. More examples and features will be added soon.
+
 # Clone the repository and setup
  ```
  git clone https://github.com/dpetrini/nova.git
@@ -15,6 +17,11 @@ To run using other folders for your code, set PYTHON_PATH to the location you do
  ```
 export PYTHONPATH="/home/.../nova"
  ```
+
+ # Available features
+  - Base Callback - run basic training and generates models, plots
+  - AUC Callback - Calculates AUC for classification tasks, generates best model, plots
+  - More to come...
 
 # Usage of Base Callback
 
@@ -32,6 +39,8 @@ By doing this you assure the accounting of accuracy, create a name for project a
  - Create default location for generated models and plots, both will be placed in 'models_project-name' and 'plots_project-name'.
 
 # Example
+
+This example is available in the repository and shows the features of Base Callback.
 
 - Dataset preparation
 
@@ -73,6 +82,10 @@ Models and plots will be stored in folders 'models_example' and 'plots_example'.
 
 ![Alt text](images/2020-07-12-08h28m_acc_curve.png?raw=true "Accuracy Curve")
 ![Alt text](images/2020-08-12-08h28m_loss_curve.png?raw=true "Loss Curve")
+
+| Accuracy | Loss |
+|----------|------|
+| ![Alt text](images/2020-07-12-08h28m_acc_curve.png?raw=true "Accuracy Curve") | ![Alt text](images/2020-08-12-08h28m_loss_curve.png?raw=true "Loss Curve") |
 
 - Training progress output example
  ```
