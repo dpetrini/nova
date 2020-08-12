@@ -5,7 +5,9 @@ It is totally based in PyTorch, get some ideas from fast.ai courses and aim is t
 
 Idea is to keep simple.
 
-# Clone the repository and using
+It is totally based in callbaks to insert new features like AUC accounting and plots for instance.
+
+# Clone the repository and setup
  ```
  git clone https://github.com/dpetrini/nova.git
  ```
@@ -59,11 +61,12 @@ It has a total of 25k images, split equally between both categories. Please crea
  - Summary of results:
 
 | Number | Feature       | Accuracy      | Setup          |
-| ------------- | ------------- | ------------- |
+| ------ | ------------- | ------------- | -------------- |
 | 1 | Basic Resnet  | 0.7140  |  50 epochs, optim = Adam, LR = 3e-3, Init = Kaiming    |
 | 2 | Basic Resnet pre-trained on imagenet |   |       |
 
 - Generated artifacts
+
 Models and plots will be stored in folders 'models_example' and 'plots_example'.
 
 - Plots
