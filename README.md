@@ -9,7 +9,7 @@ It is totally based in callbaks to insert new features like AUC accounting and p
 
 There is available an example of Base callback usage. More examples and features will be added soon.
 
-# Clone the repository and setup
+## Clone the repository and setup
  ```
  git clone https://github.com/dpetrini/nova.git
  ```
@@ -31,14 +31,14 @@ export PYTHONPATH="/home/.../nova"
  ```
 By doing this you assure the accounting of accuracy, create a name for project and showing training progress.
 
-# Features of Base Callback
+## Features of Base Callback
 
  - Train and save last and best models
  - Create Loss and Accuracy plots
  - Insert date and time in generate file names
  - Create default location for generated models and plots, both will be placed in 'models_project-name' and 'plots_project-name'.
 
-# Example
+## Example
 
 This example is available in the repository and shows the features of Base Callback.
 
@@ -79,9 +79,6 @@ It has a total of 25k images, split equally between both categories. Please crea
 Models and plots will be stored in folders 'models_example' and 'plots_example'.
 
 - Plots
-
-![Alt text](images/2020-07-12-08h28m_acc_curve.png?raw=true "Accuracy Curve")
-![Alt text](images/2020-08-12-08h28m_loss_curve.png?raw=true "Loss Curve")
 
 | Accuracy | Loss |
 |----------|------|
