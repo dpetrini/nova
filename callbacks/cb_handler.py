@@ -48,24 +48,26 @@ class CallbackHandler():
         return True
 
     # # Workaround para passar modelo
-
-    def get_model(self):
+    @property
+    def last_model(self):
         for cb in self.cbs:
-            if cb and hasattr(cb, 'get_model'):
-                model = cb.get_model()
-                return model
+            if cb and hasattr(cb, 'last_model'):
+                _model = cb.last_model
+                return _model
         return True
 
-    def get_best_model(self):
+    @property
+    def best_model(self):
         for cb in self.cbs:
-            if cb and hasattr(cb, 'get_best_model'):
-                best_model = cb.get_best_model()
-                return best_model
+            if cb and hasattr(cb, 'best_model'):
+                _best_model = cb.best_model
+                return _best_model
         return True
 
-    def get_best_auc_model(self):
+    @property
+    def best_auc_model(self):
         for cb in self.cbs:
-            if cb and hasattr(cb, 'get_best_auc_model'):
-                best_model = cb.get_best_auc_model()
-                return best_model
+            if cb and hasattr(cb, 'best_auc_model'):
+                _best_model = cb.best_auc_model
+                return _best_model
         return True

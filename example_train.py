@@ -65,7 +65,7 @@ def main():
     model = model.to(device)
 
     train_image_paths = prefix+'/train'
-    val_image_paths = prefix+'/validation'
+    val_image_paths = prefix+'/val'
     test_image_paths = prefix+'/test'
 
     # classe dataset que carregar arquivos e faz transformacoes
@@ -106,8 +106,8 @@ def main():
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H_%M')
 
     print("\nRunning model in test set...")
-    model = cb.get_model()
-    best_model = cb.get_best_model()
+    model = cb.last_model
+    best_model = cb.best_model
     run_test(model, loss_func, test_dataloader, device, st, mini_batch, "normal")
     run_test(best_model, loss_func, test_dataloader, device, st, mini_batch, "best")
 

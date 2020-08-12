@@ -114,6 +114,10 @@ def run_test_auc(model, loss_criterion,  test_dataloader, device,
             label_auc = np.append(label_auc, labels.cpu().detach().numpy())
             y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
 
+            # enter show result mode
+            if batch_size == 1:
+                print(f'{labels.item()}  {torch.softmax(outputs, dim=1)[:, 1].item():.3f}')
+
     # Find average test loss and test accuracy
     avg_test_loss = test_loss/batch_val_counter
     avg_test_acc = test_acc/batch_val_counter

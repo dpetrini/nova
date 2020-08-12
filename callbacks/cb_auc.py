@@ -17,7 +17,9 @@ from callbacks.cb import Callbacks    # base
 
 class AUC_CB(Callbacks):
     def __init__(self, name):
+        self.name = name
         self.models_dir = f'models_{name}'
+        self.plots_dir = f'plots_{name}'
         pass
         # self.has_auc = False        # during tests
         # self.y_hat_auc = []
@@ -29,7 +31,7 @@ class AUC_CB(Callbacks):
         self.y_hat_auc, self.label_auc = [], []
         self.y_hat_val_auc, self.label_val_auc = [], []
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size):
+    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
         self.history = []
         self.best_auc = 0.3
@@ -88,19 +90,19 @@ class AUC_CB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep'#+str(n_samples)+'n'
 
-        result_auc = f"Best AUC: {self.best_auc:1.3f}"
+        result_auc = f"Best AUC: {self.best_auc:1.4f}"
         print(result_auc)
 
         history = np.array(self.history)
         plt.plot(history[:, 0:2])
-        plt.title("AUC - FullClassifier Resnet50 " + result_auc)
+        plt.title(f'AUC - FullClassifier {self.name} {result_auc}')
         plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
         plt.xlabel('Epoch Number')
         plt.ylabel('Accuracy')
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
         plt.text(0, 0.9, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-        plt.savefig('plot_train_full/'+str(st)+'_AUC_curve.png')
+        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve.png')
         plt.show()
 
         # save the model
@@ -111,5 +113,6 @@ class AUC_CB(Callbacks):
 
         return True
 
-    def get_best_auc_model(self):
+    @property
+    def best_auc_model(self):
         return self.best_model
