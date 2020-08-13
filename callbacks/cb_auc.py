@@ -20,7 +20,6 @@ class AUC_CB(Callbacks):
         self.name = name
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
-        pass
         # self.has_auc = False        # during tests
         # self.y_hat_auc = []
         # self.label_auc = []
@@ -54,20 +53,11 @@ class AUC_CB(Callbacks):
         return True
 
     def after_epoch(self, model, train_acc, train_loss, val_acc, val_loss, **kwargs):
-        # auc_train = kwargs.get('auc_train')
-        # auc_val = kwargs.get('auc_val')
-
-        #print(auc_train, auc_val)
-
-        #if (auc_train and auc_val):
 
         # calculate AUC Train
         auc_malign_train = roc_auc_score(self.label_auc.ravel(),
                                          self.y_hat_auc.ravel())
         # calculate AUC VAL
-        #print(self.label_val_auc.shape, self.y_hat_val_auc.shape, self.label_val_auc.sum(), self.y_hat_val_auc.sum())
-        #print(self.label_val_auc)
-        #print(self.y_hat_val_auc)
         auc_malign_val = roc_auc_score(self.label_val_auc.ravel(),
                                        self.y_hat_val_auc.ravel())
 
@@ -93,6 +83,11 @@ class AUC_CB(Callbacks):
         result_auc = f"Best AUC: {self.best_auc:1.4f}"
         print(result_auc)
 
+        # save the model
+        torch.save(self.best_model.state_dict(),
+                   f'{self.models_dir}/{summary}_best_model_AUC_0{result_auc[-4:]}.pt')
+        print(f'cb_auc: Best auc model saved in {self.models_dir}/')
+
         history = np.array(self.history)
         plt.plot(history[:, 0:2])
         plt.title(f'AUC - FullClassifier {self.name} {result_auc}')
@@ -102,14 +97,9 @@ class AUC_CB(Callbacks):
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
         plt.text(0, 0.9, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve.png')
-        plt.show()
-
-        # save the model
-        #torch.save(self.model.state_dict(), 'models_train/'+summary+'_model_'+'.pt')
-        torch.save(self.best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_AUC_0{result_auc[-3:]}.pt')
-        print(f'cb_auc: Best auc model saved in {self.models_dir}/')
+        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{result_auc[-4:]}.png')
+        #plt.show()
+        plt.clf()
 
         return True
 

@@ -39,9 +39,9 @@ class BaseCB(Callbacks):
         train_step = len(train_dataloader)
         val_step = len(val_dataloader)
         # of break line, fix here
-        print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}')
         self.bar_step = train_step // 50 if train_step >= 50 else 1
         self.bar_step_val = val_step // 10 if val_step >= 10 else 1
+        print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}, bar_step:{self.bar_step} bar_step_val:{self.bar_step_val}')
         self.total_train_samples, self.total_val_samples = 0, 0
         self.best_val_acc = 0.3
         self.n_epoch = 0
@@ -113,14 +113,14 @@ class BaseCB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep_'+str(n_samples)+'n'
 
+        result_text = f"Best ACC: {self.best_val_acc:1.4f}"
+
         # save the model
         torch.save(self._model.state_dict(),
                    f'{self.models_dir}/{summary}_model.pt')
         torch.save(self._best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_ACC.pt')
+                   f'{self.models_dir}/{summary}_best_model_ACC_0{result_text[-4:]}.pt')
         print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
-
-        result_text = f"Best ACC: {self.best_val_acc:1.4f}"
 
         # plots
         history = np.array(self.history)
@@ -131,8 +131,9 @@ class BaseCB(Callbacks):
         plt.ylabel('Loss')
         plt.ylim(0, 5)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_loss_curve.png')
-        plt.show()
+        plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{result_text[-4:]}.png')
+        #plt.show()
+        plt.clf()
 
         plt.plot(history[:, 2:4])
         plt.title("ACC " + result_text)
@@ -141,9 +142,10 @@ class BaseCB(Callbacks):
         plt.ylabel('Accuracy')
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_acc_curve.png')
+        plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{result_text[-4:]}.png')
         plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-        plt.show()
+        #plt.show()
+        plt.clf()
 
         return True
 

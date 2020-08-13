@@ -1,5 +1,6 @@
 import torch
 from torch.autograd import Variable
+from torch.cuda.amp import GradScaler, autocast
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
@@ -11,6 +12,7 @@ parallel = False
 
 # Accuracy
 def acc(y_hat, labels):
+    """ Default accuracy """
 
     # para parallel
     if len(y_hat) > 1 and parallel:
@@ -23,6 +25,13 @@ def train_and_validate(model, train_dataloader, val_dataloader,
                        loss_criterion, optimizer, optimizer_args,
                        mini_batch, epochs, first_epoch, device,
                        cb, **kwargs):
+    """
+    Main train and validate function that runs main loop (fit).
+    Receives all parameters and feed callback system.
+    Loop through epochs and executes pytorch forward, loss,
+    backpropagation and optimization (grads calc).
+    Returns the model trained.
+    """
 
     calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
 
@@ -85,9 +94,94 @@ def train_and_validate(model, train_dataloader, val_dataloader,
 
     return model
 
+def train_and_validate_amp(model, train_dataloader, val_dataloader,
+                           loss_criterion, optimizer, optimizer_args,
+                           mini_batch, epochs, first_epoch, device,
+                           cb, **kwargs):
+    """
+    Mixed precision (automatic) version for train_and_validate.
+    Uses FP16 and FP32 in main loop with pytorch Automatic Mixed Precision.
+    In simple tests: use 75% of memory in 66% of time. Less memory and faster.
+    """
 
-def run_test_auc(model, loss_criterion,  test_dataloader, device,
+    assert torch.__version__ >= '1.6.0', "[Mixed precision] Please use PyTorch 1.6.0+"
+
+    calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+
+    if not cb.begin_train_val(epochs, train_dataloader,
+                              val_dataloader, mini_batch, optimizer):
+        return
+
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
+
+    # Creates a GradScaler once at the beginning of training.
+    scaler = GradScaler()
+
+    for epoch in range(first_epoch, epochs+1):
+        model.train()
+        train_loss, train_acc = 0.0, 0.0
+        val_loss, val_acc = 0.0, 0.0
+
+        if not cb.begin_epoch(epoch): return  # noqa: E701
+
+        optim = cb.update_LR(epoch, model, optimizer, optimizer_args)
+        if optim: optimizer = optim
+
+        # Train loop
+        for _, (inputs, labels) in enumerate(train_dataloader):
+            inputs = Variable(inputs.to(device))
+            labels = Variable(labels.to(device))
+
+            optimizer.zero_grad()                   # clean existing gradients
+            # Runs the forward pass with autocasting.
+            with autocast():
+                # output = model(input)
+                # loss = loss_fn(output, target)
+                outputs = model(inputs)                 # forward pass
+                loss = loss_criterion(outputs, labels)  # compute loss
+            if parallel:
+                loss = loss.mean()                  # list in this case
+            scaler.scale(loss).backward()   # Calls backward() on scaled loss for scaled gradients.
+            #loss.backward()                         # backprop the gradients
+            #optimizer.step()                        # update parameters
+            scaler.step(optimizer)
+            scaler.update()     # Updates the scale for next iteration.
+
+            train_loss += loss.item() * inputs.size(0)
+            train_acc += calc_acc(outputs, labels).item()
+
+            cb.after_step(inputs.size(0), labels, outputs)
+
+        # validation - no gradient tracking needed
+        with torch.no_grad():
+            model.eval()
+
+            # validation loop
+            for _, (inputs, labels) in enumerate(val_dataloader):
+                inputs = Variable(inputs.to(device))
+                labels = Variable(labels.to(device))
+
+                outputs = model(inputs)                 # forward pass
+                loss = loss_criterion(outputs, labels)  # compute loss
+                if parallel:
+                    loss = loss.mean()
+                val_loss += loss.item() * inputs.size(0)
+                val_acc += calc_acc(outputs, labels).item()
+
+                cb.after_step_val(inputs.size(0), labels, outputs)
+
+        cb.after_epoch(model, train_acc, train_loss, val_acc, val_loss)
+
+        # scheduler.step()
+
+    cb.after_train_val()
+
+    return model
+
+
+def run_test_auc(model, loss_criterion, test_dataloader, device,
                  summary, batch_size, model_type, title, **kwargs):
+    """ Run test from test_dataloader, calculating AUC and ROC curve"""
 
     calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
 
@@ -132,8 +226,9 @@ def run_test_auc(model, loss_criterion,  test_dataloader, device,
     show_auc(label_auc, y_hat_auc, title)
 
 
-def run_test(model, loss_criterion,  test_dataloader, device,
+def run_test(model, loss_criterion, test_dataloader, device,
              summary, batch_size, model_type, **kwargs):
+    """ Run test from test_dataloader """
 
     calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
 
