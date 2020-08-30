@@ -20,17 +20,25 @@ class AUC_CB(Callbacks):
         self.name = name
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
+
+        self.best_auc_ep = 0
+        self.n_epoch = 0
+
         # self.has_auc = False        # during tests
         # self.y_hat_auc = []
         # self.label_auc = []
         # self.y_hat_val_auc = []
         # self.label_val_auc = []
 
+    def __repr__(self):
+        return 'AUC_Stats'
+
     def begin_epoch(self, current_epoch):
+        self.n_epoch = current_epoch
         self.y_hat_auc, self.label_auc = [], []
         self.y_hat_val_auc, self.label_val_auc = [], []
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
+    def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
         self.history = []
         self.best_auc = 0.3
@@ -69,6 +77,7 @@ class AUC_CB(Callbacks):
             print(f' |------>  Best Val Auc model now {auc_malign_val:1.4f}')
             self.best_model = copy.deepcopy(model)  # Will work                
             self.best_auc = auc_malign_val
+            self.best_auc_ep = self.n_epoch
         else: print()   # noop
 
         return True
@@ -80,24 +89,25 @@ class AUC_CB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep'#+str(n_samples)+'n'
 
-        result_auc = f"Best AUC: {self.best_auc:1.4f}"
+        result_auc = f"Best AUC: {self.best_auc:1.4f}  (@ep {self.best_auc_ep})"
+        auc_value = f'{self.best_auc:1.4f}'[-4:]
         print(result_auc)
 
         # save the model
         torch.save(self.best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_AUC_0{result_auc[-4:]}.pt')
+                   f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}.pt')
         print(f'cb_auc: Best auc model saved in {self.models_dir}/')
 
         history = np.array(self.history)
         plt.plot(history[:, 0:2])
-        plt.title(f'AUC - FullClassifier {self.name} {result_auc}')
+        plt.title(f'AUC - Classifier {self.name} {result_auc}')
         plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
         plt.xlabel('Epoch Number')
         plt.ylabel('Accuracy')
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.text(0, 0.9, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{result_auc[-4:]}.png')
+        plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
+        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png')
         #plt.show()
         plt.clf()
 

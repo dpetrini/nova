@@ -5,15 +5,21 @@ class Callbacks():
     def __init__(self):
         pass
 
-    # def set_name(self, name):
-    #     self.name = name
-
     def begin_train_val(self, epochs, *args):
         self.epochs = epochs
         return True
 
     def begin_epoch(self, *args):
         return True
+
+    def begin_batch(self, *args):
+        return False
+
+    def begin_val(self, *args):
+        return True
+
+    def update_loss(self, *args, **kwargs):
+        return False
 
     def update_LR(self, *args, **kwargs):
         return False

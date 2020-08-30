@@ -2,6 +2,8 @@
 # Warm-up + cosine Learning Rate scheduler. Based on the formulas from:
 #
 # "Bag of Tricks for Image Classification with Convolutional ...." paper
+#
+# Stores LR to plot in the end
 
 import math
 import matplotlib.pyplot as plt
@@ -12,6 +14,7 @@ from callbacks.cb import Callbacks    # base
 
 class LR_SchedCB(Callbacks):
     def __init__(self):
+        print('Warm-up + cosine Learning Rate scheduler')
         # Some default values
         self.warmup = 5
         self.base_lr = 1e-3
@@ -19,7 +22,10 @@ class LR_SchedCB(Callbacks):
         self.next_lr = 0
         self.res = []
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
+    def __repr__(self):
+        return 'Warm-up_+_cosine_LR'
+
+    def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
         self.warmup = epochs//20 if epochs//20 > 5 else self.warmup     # 5 or 5%
         self.epochs = epochs
 
@@ -48,7 +54,7 @@ class LR_SchedCB(Callbacks):
         print(f'Updating {cont:3d} parameters ', end='')
 
         for param_group in optimizer.param_groups:
-            print("current learning rate is: {}".format(param_group['lr']))
+            print(f"current learning rate is: {param_group['lr']:1.2e}")
 
         return optimizer
 

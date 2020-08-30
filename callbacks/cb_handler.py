@@ -10,9 +10,19 @@ class CallbackHandler():
         print()
         self.cbs = cbs if cbs else []
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
+    def __repr__(self):
         for cb in self.cbs:
-            cb.begin_train_val(epochs, train_dataloader, val_dataloader, bs_size, optimizer)
+            print(cb, ' ', end='')
+        return ''
+
+    def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
+        for cb in self.cbs:
+            cb.begin_train_val(epochs, model, train_dataloader, val_dataloader, bs_size, optimizer)
+        return True
+
+    def update_loss(self, *args, **kwargs):
+        for cb in self.cbs:
+            cb.update_loss(*args, **kwargs)
         return True
 
     # def update_LR(self, epoch, model, optimizer, stages):
@@ -25,6 +35,16 @@ class CallbackHandler():
     def begin_epoch(self, current_epoch):
         for cb in self.cbs:
             cb.begin_epoch(current_epoch)
+        return True
+
+    def begin_batch(self, *args):
+        for cb in self.cbs:
+            ret = cb.begin_batch(*args)
+        return ret
+
+    def begin_val(self, *args):
+        for cb in self.cbs:
+            cb.begin_val(*args)
         return True
 
     def after_epoch(self, model, train_acc, train_loss, val_acc, val_loss, **kwargs):

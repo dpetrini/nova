@@ -16,6 +16,7 @@ import os
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
+from torch.autograd import Variable
 
 from callbacks.cb import Callbacks    # base
 
@@ -31,16 +32,53 @@ class BaseCB(Callbacks):
             os.makedirs(f'{self.plots_dir}')
             print(f'Creating dir {self.plots_dir}')
 
-    def __repr__(self):
-        return 'BASE cb'
+        self.best_val_acc_ep = 0
 
-    def begin_train_val(self, epochs, train_dataloader, val_dataloader, bs_size, optimizer):
+    def __repr__(self):
+        return 'BASE_Train'
+
+    # def begin_batch(self, inputs, labels):
+    #     self.train = True
+    #     if isinstance(inputs, dict):
+    #         for key in ['CC', 'MLO']:
+    #             inputs[key] = inputs[key].to(self.device)
+    #         labels = Variable(labels.to(self.device))
+    #     else:
+    #         inputs = Variable(inputs.to(self.device))
+    #         labels = Variable(labels.to(self.device))
+
+    #     print(inputs.shape, inputs.type())
+
+    #     return inputs, labels #, self.new_loss, self.new_calc_acc
+
+    # def begin_val(self):
+    #     """ Called each validation start """
+    #     self.train = False
+    #     if isinstance(inputs, dict):
+    #         for key in ['CC', 'MLO']:
+    #             inputs[key] = inputs[key].to(self.device)
+    #         labels = Variable(labels.to(self.device))
+    #     else:
+    #         inputs = Variable(inputs.to(self.device))
+    #         labels = Variable(labels.to(self.device))
+
+    #     return inputs, labels
+
+
+    def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
         train_step = len(train_dataloader)
         val_step = len(val_dataloader)
         # of break line, fix here
-        self.bar_step = train_step // 50 if train_step >= 50 else 1
+        #self.bar_step = train_step // 50 if train_step >= 50 else 1
+        if train_step < 50:
+            self.bar_step = 1
+        elif train_step >= 50 and train_step < 100:
+            self.bar_step = 2
+        else:
+            self.bar_step = train_step // 50
         self.bar_step_val = val_step // 10 if val_step >= 10 else 1
+        #self.bar_step_val = self.bar_step #// 4 if val_step >= 1 else 1
         print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}, bar_step:{self.bar_step} bar_step_val:{self.bar_step_val}')
         self.total_train_samples, self.total_val_samples = 0, 0
         self.best_val_acc = 0.3
@@ -80,6 +118,7 @@ class BaseCB(Callbacks):
             print(f' |------>  Best Val Acc model now {avg_val_acc:1.4f}')
             self._best_model = copy.deepcopy(model)  # Will work
             self.best_val_acc = avg_val_acc
+            self.best_val_acc_ep = self.n_epoch
         else: print()   # noop
 
         epoch_end = time.time()
@@ -113,13 +152,15 @@ class BaseCB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep_'+str(n_samples)+'n'
 
-        result_text = f"Best ACC: {self.best_val_acc:1.4f}"
+        result_text = f"Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep})"
+        acc_value = f'{self.best_val_acc:1.4f}'[-4:]
+        print(result_text)
 
         # save the model
         torch.save(self._model.state_dict(),
                    f'{self.models_dir}/{summary}_model.pt')
         torch.save(self._best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_ACC_0{result_text[-4:]}.pt')
+                   f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
         print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
 
         # plots
@@ -129,9 +170,9 @@ class BaseCB(Callbacks):
         plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")
         plt.xlabel('Epoch Number')
         plt.ylabel('Loss')
-        plt.ylim(0, 5)
+        plt.ylim(0, 3)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{result_text[-4:]}.png')
+        plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
         #plt.show()
         plt.clf()
 
@@ -142,7 +183,7 @@ class BaseCB(Callbacks):
         plt.ylabel('Accuracy')
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{result_text[-4:]}.png')
+        plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
         plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
         #plt.show()
         plt.clf()

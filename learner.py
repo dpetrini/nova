@@ -34,12 +34,13 @@ def train_and_validate(model, train_dataloader, val_dataloader,
     """
 
     calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+    input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
 
-    if not cb.begin_train_val(epochs, train_dataloader,
+    if not cb.begin_train_val(epochs, model, train_dataloader,
                               val_dataloader, mini_batch, optimizer):
         return
 
-    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
+    cb.update_loss(loss_criterion, calc_acc)
 
     for epoch in range(first_epoch, epochs+1):
         model.train()
@@ -53,8 +54,20 @@ def train_and_validate(model, train_dataloader, val_dataloader,
 
         # Train loop
         for _, (inputs, labels) in enumerate(train_dataloader):
-            inputs = Variable(inputs.to(device))
+
+            if isinstance(inputs, dict):
+                for key in input_dict:
+                    inputs[key] = inputs[key].to(device)
+            else:
+                inputs = Variable(inputs.to(device))
+
             labels = Variable(labels.to(device))
+
+            # inserting MIXUP handling
+            res = cb.begin_batch(inputs, labels)
+            if res: inputs, labels, loss_criterion, calc_acc = res
+
+            # print('LE. ', inputs.shape, inputs.type())
 
             optimizer.zero_grad()                   # clean existing gradients
             outputs = model(inputs)                 # forward pass
@@ -63,32 +76,37 @@ def train_and_validate(model, train_dataloader, val_dataloader,
                 loss = loss.mean()                  # list in this case
             loss.backward()                         # backprop the gradients
             optimizer.step()                        # update parameters
-            train_loss += loss.item() * inputs.size(0)
+            train_loss += loss.item() * labels.size(0) # inputs.size(0) mini_batch
             train_acc += calc_acc(outputs, labels).item()
 
-            cb.after_step(inputs.size(0), labels, outputs)
+            cb.after_step(labels.size(0), labels, outputs) # inputs.size(0)
 
         # validation - no gradient tracking needed
         with torch.no_grad():
             model.eval()
+            cb.begin_val()
 
             # validation loop
             for _, (inputs, labels) in enumerate(val_dataloader):
-                inputs = Variable(inputs.to(device))
+
+                if isinstance(inputs, dict):
+                    for key in input_dict:
+                        inputs[key] = inputs[key].to(device)
+                else:
+                    inputs = Variable(inputs.to(device))
+
                 labels = Variable(labels.to(device))
 
                 outputs = model(inputs)                 # forward pass
                 loss = loss_criterion(outputs, labels)  # compute loss
                 if parallel:
                     loss = loss.mean()
-                val_loss += loss.item() * inputs.size(0)
+                val_loss += loss.item() * labels.size(0) # inputs.size(0) mini_batch
                 val_acc += calc_acc(outputs, labels).item()
 
-                cb.after_step_val(inputs.size(0), labels, outputs)
+                cb.after_step_val(labels.size(0), labels, outputs) # inputs.size(0) mini_batch
 
         cb.after_epoch(model, train_acc, train_loss, val_acc, val_loss)
-
-        # scheduler.step()
 
     cb.after_train_val()
 
@@ -102,17 +120,19 @@ def train_and_validate_amp(model, train_dataloader, val_dataloader,
     Mixed precision (automatic) version for train_and_validate.
     Uses FP16 and FP32 in main loop with pytorch Automatic Mixed Precision.
     In simple tests: use 75% of memory in 66% of time. Less memory and faster.
+    Sometimes it just don't work and get worse, like for resnest...
     """
 
     assert torch.__version__ >= '1.6.0', "[Mixed precision] Please use PyTorch 1.6.0+"
 
-    calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+    print('Using AMP')
 
-    if not cb.begin_train_val(epochs, train_dataloader,
+    calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+    input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
+
+    if not cb.begin_train_val(epochs, model, train_dataloader,
                               val_dataloader, mini_batch, optimizer):
         return
-
-    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
 
     # Creates a GradScaler once at the beginning of training.
     scaler = GradScaler()
@@ -129,28 +149,30 @@ def train_and_validate_amp(model, train_dataloader, val_dataloader,
 
         # Train loop
         for _, (inputs, labels) in enumerate(train_dataloader):
-            inputs = Variable(inputs.to(device))
+
+            if isinstance(inputs, dict):
+                for key in input_dict:
+                    inputs[key] = inputs[key].to(device)
+            else:
+                inputs = Variable(inputs.to(device))
+
             labels = Variable(labels.to(device))
 
             optimizer.zero_grad()                   # clean existing gradients
             # Runs the forward pass with autocasting.
             with autocast():
-                # output = model(input)
-                # loss = loss_fn(output, target)
                 outputs = model(inputs)                 # forward pass
                 loss = loss_criterion(outputs, labels)  # compute loss
             if parallel:
                 loss = loss.mean()                  # list in this case
-            scaler.scale(loss).backward()   # Calls backward() on scaled loss for scaled gradients.
-            #loss.backward()                         # backprop the gradients
-            #optimizer.step()                        # update parameters
-            scaler.step(optimizer)
-            scaler.update()     # Updates the scale for next iteration.
+            scaler.scale(loss).backward()   # Calls backward() on scaled loss for scaled gradients.             
+            scaler.step(optimizer)                   # update parameters
+            scaler.update()                 # Updates the scale for next iteration.
 
-            train_loss += loss.item() * inputs.size(0)
+            train_loss += loss.item() * labels.size(0) # inputs.size(0) mini_batch
             train_acc += calc_acc(outputs, labels).item()
 
-            cb.after_step(inputs.size(0), labels, outputs)
+            cb.after_step(labels.size(0), labels, outputs)  # inputs.size(0)
 
         # validation - no gradient tracking needed
         with torch.no_grad():
@@ -158,21 +180,25 @@ def train_and_validate_amp(model, train_dataloader, val_dataloader,
 
             # validation loop
             for _, (inputs, labels) in enumerate(val_dataloader):
-                inputs = Variable(inputs.to(device))
+
+                if isinstance(inputs, dict):
+                    for key in input_dict:
+                        inputs[key] = inputs[key].to(device)
+                else:
+                    inputs = Variable(inputs.to(device))
+
                 labels = Variable(labels.to(device))
 
                 outputs = model(inputs)                 # forward pass
                 loss = loss_criterion(outputs, labels)  # compute loss
                 if parallel:
                     loss = loss.mean()
-                val_loss += loss.item() * inputs.size(0)
+                val_loss += loss.item() * labels.size(0) # inputs.size(0) mini_batch
                 val_acc += calc_acc(outputs, labels).item()
 
-                cb.after_step_val(inputs.size(0), labels, outputs)
+                cb.after_step_val(labels.size(0), labels, outputs)  # inputs.size(0) mini_batch
 
         cb.after_epoch(model, train_acc, train_loss, val_acc, val_loss)
-
-        # scheduler.step()
 
     cb.after_train_val()
 
@@ -194,15 +220,20 @@ def run_test_auc(model, loss_criterion, test_dataloader, device,
 
         # validation loop
         for _, (inputs, labels) in enumerate(test_dataloader):
-            inputs = Variable(inputs.to(device))
-            labels = Variable(labels.to(device))
+            if isinstance(inputs, dict):
+                for key in ['CC', 'MLO']:
+                    inputs[key] = inputs[key].to(device)
+                labels = Variable(labels.to(device))
+            else:
+                inputs = Variable(inputs.to(device))
+                labels = Variable(labels.to(device))
             outputs = model(inputs)                     # forward pass
             loss = loss_criterion(outputs, labels)      # compute loss
-            test_loss += loss.item() * inputs.size(0)   # batch total loss
+            test_loss += loss.item() * labels.size(0) # inputs.size(0)   # batch total loss
 
             # calculate acc
             test_acc += calc_acc(outputs, labels).item()
-            batch_val_counter += inputs.size(0)
+            batch_val_counter += labels.size(0) #inputs.size(0)
 
             # Store auc for malignant
             label_auc = np.append(label_auc, labels.cpu().detach().numpy())
@@ -242,17 +273,22 @@ def run_test(model, loss_criterion, test_dataloader, device,
         # validation loop
         for _, (inputs, labels) in enumerate(test_dataloader):
 
-            inputs = Variable(inputs.to(device))
-            labels = Variable(labels.to(device))
+            if isinstance(inputs, dict):
+                for key in ['CC', 'MLO']:
+                    inputs[key] = inputs[key].to(device)
+                labels = Variable(labels.to(device))
+            else:
+                inputs = Variable(inputs.to(device))
+                labels = Variable(labels.to(device))
 
             outputs = model(inputs)                     # forward pass
             loss = loss_criterion(outputs, labels)      # compute loss
             if parallel:
                 loss = loss.mean()
-            test_loss += loss.item() * inputs.size(0)   # batch total loss
+            test_loss += loss.item() * labels.size(0)# inputs.size(0)   # batch total loss
             test_acc += calc_acc(outputs, labels).item()
 
-            batch_val_counter += inputs.size(0)
+            batch_val_counter += labels.size(0) #inputs.size(0)
 
         # # find average training loss and validation acc
         # avg_test_loss = test_loss/batch_val_counter
