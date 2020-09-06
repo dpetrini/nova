@@ -33,7 +33,7 @@ class LR_SchedCB(Callbacks):
                     param.requires_grad = False
                 else:
                     param.requires_grad = True
-            optimizer = optim.Adam(model.parameters(), lr=1e-4,
+            optimizer = optim.Adam(model.parameters(), lr=1e-4, # MID:lr=1e-4 MIDThin:1e-3, Transfer:lr=1e-4 
                                    weight_decay=0.005 if use_wd else 0)
 
         if epoch >= ep_stage2 and epoch <= ep_stage3:

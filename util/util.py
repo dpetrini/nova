@@ -31,7 +31,7 @@ def load_checkpoint(optimizer, model, filename):
     return epoch, acc  # , best_model
 
 
-def show_auc(label_auc, y_hat_auc, title, pr=False):
+def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     """Plots AUC and Precision-Recall Curves
     Input: labels and inference outputs as np arrays
     Output: plots on screen and saved in plot_test_auc folder """
@@ -53,7 +53,7 @@ def show_auc(label_auc, y_hat_auc, title, pr=False):
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
     # Plot ROC curves
-    plt.figure()
+    #plt.figure()
     plt.plot(fpr["micro"], tpr["micro"],
              label='ROC curve (area = {0:0.2f})'
              ''.format(roc_auc["micro"]),
@@ -67,7 +67,8 @@ def show_auc(label_auc, y_hat_auc, title, pr=False):
     plt.title(title)
     plt.legend(loc="lower right")
     plt.savefig('plot_test_auc/'+str(st)+'_Maligno_ROC.png')
-    plt.show()
+    if show_plt:
+        plt.show()
 
     if not pr:
         return
@@ -79,7 +80,7 @@ def show_auc(label_auc, y_hat_auc, title, pr=False):
                                             y_hat_auc.ravel())
 
     # Plot PR curves
-    plt.figure()
+    #plt.figure()
     plt.plot(precision, recall,
              label='Precision-Recall curve (area = {0:0.2f})'
              ''.format(avg_precision),
@@ -93,4 +94,5 @@ def show_auc(label_auc, y_hat_auc, title, pr=False):
     plt.title(title)
     plt.legend(loc="lower right")
     plt.savefig('plot_test_auc/'+str(st)+'_Maligno_PR.png')
-    plt.show()
+    if show_plt:
+        plt.show()

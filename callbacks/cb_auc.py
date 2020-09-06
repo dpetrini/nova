@@ -3,12 +3,13 @@
 
 # TODO: bring auc calculation to here (reading label and output)
 
-import torch
+
 import copy
 import time
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from sklearn.metrics import roc_auc_score
 
 

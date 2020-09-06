@@ -16,13 +16,13 @@ import os
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
-from torch.autograd import Variable
 
 from callbacks.cb import Callbacks    # base
 
 
 class BaseCB(Callbacks):
-    def __init__(self, name):
+    def __init__(self, name, save_models=True):
+        self.save_models = save_models
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
         if os.path.isdir(f'{self.models_dir}') is False:
@@ -157,11 +157,13 @@ class BaseCB(Callbacks):
         print(result_text)
 
         # save the model
-        torch.save(self._model.state_dict(),
-                   f'{self.models_dir}/{summary}_model.pt')
-        torch.save(self._best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
-        print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
+        if self.save_models:
+            torch.save(self._model.state_dict(),
+                       f'{self.models_dir}/{summary}_model.pt')
+            torch.save(self._best_model.state_dict(),
+                       f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
+            print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
+
 
         # plots
         history = np.array(self.history)

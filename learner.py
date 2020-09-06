@@ -254,7 +254,7 @@ def run_test_auc(model, loss_criterion, test_dataloader, device,
     auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
     print(f' AUC Malignant: {auc_mal_val:.3f}')
 
-    show_auc(label_auc, y_hat_auc, title)
+    show_auc(label_auc, y_hat_auc, title, show_plt=False)
 
 
 def run_test(model, loss_criterion, test_dataloader, device,
