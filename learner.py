@@ -67,8 +67,6 @@ def train_and_validate(model, train_dataloader, val_dataloader,
             res = cb.begin_batch(inputs, labels)
             if res: inputs, labels, loss_criterion, calc_acc = res
 
-            # print('LE. ', inputs.shape, inputs.type())
-
             optimizer.zero_grad()                   # clean existing gradients
             outputs = model(inputs)                 # forward pass
             loss = loss_criterion(outputs, labels)  # compute loss
@@ -267,7 +265,6 @@ def run_test(model, loss_criterion, test_dataloader, device,
     batch_val_counter = 0
 
     with torch.no_grad():
-
         model.eval()
 
         # validation loop
@@ -288,11 +285,7 @@ def run_test(model, loss_criterion, test_dataloader, device,
             test_loss += loss.item() * labels.size(0)# inputs.size(0)   # batch total loss
             test_acc += calc_acc(outputs, labels).item()
 
-            batch_val_counter += labels.size(0) #inputs.size(0)
-
-        # # find average training loss and validation acc
-        # avg_test_loss = test_loss/batch_val_counter
-        # avg_test_acc = test_acc/batch_val_counter
+            batch_val_counter += labels.size(0) #inputs.size(0)r
 
     # Find average test loss and test accuracy
     avg_test_loss = test_loss/batch_val_counter

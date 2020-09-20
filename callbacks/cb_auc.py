@@ -104,7 +104,7 @@ class AUC_CB(Callbacks):
         plt.title(f'AUC - Classifier {self.name} {result_auc}')
         plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
         plt.xlabel('Epoch Number')
-        plt.ylabel('Accuracy')
+        plt.ylabel('Area Under Curve')
         plt.ylim(0, 1)
         plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
         plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))

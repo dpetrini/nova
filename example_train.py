@@ -1,10 +1,20 @@
 #
-#   Example for nova simple pytorch-based library
+# Example for nova simple pytorch-based library
 #
+# Size train: 2000  Size val:  1000  Size Test: 1000
+# Loading from Ram
+# Using AMP (pytorch 1.6+)
+#
+# Benchmarks:
+# September/2020
+#   Num epochs: 50
+#   Batch size: 64
+#   Acc Train: 83.45  Acc Val: 81.10   Acc Test: 79.30
+#   Time @RTX2060:
+
 
 import datetime
 import time
-
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -16,26 +26,23 @@ from callbacks.cb_handler import CallbackHandler
 from callbacks.cb_base import BaseCB
 from callbacks.cb_lr_patch_clf import LR_SchedCB
 
-from learner import train_and_validate, run_test
-from util.util import load_checkpoint
-
-
-prefix = 'data_cats_dogs'
+from learner import train_and_validate_amp, run_test
 
 device = 'gpu'      # 'cpu' #    # valid if parallel false
 gpu_number = 0
 
-num_epochs = 50
-mini_batch = 64
-
+PREFIX = 'data_cats_dogs'
+NUM_EPOCHS = 50
+MINI_BATCH = 64
 LR = 3e-3
-
-PRE_TRAINED = False
-
+PRE_TRAINED = True
 NUM_WORKERS = 2
 
 
 def main():
+    """ Just main """
+
+    torch.backends.cudnn.benchmark = True
 
     if PRE_TRAINED:
         model = MyResnet50(pretrained=True)
@@ -64,9 +71,9 @@ def main():
 
     model = model.to(device)
 
-    train_image_paths = prefix+'/train'
-    val_image_paths = prefix+'/val'
-    test_image_paths = prefix+'/test'
+    train_image_paths = PREFIX+'/train'
+    val_image_paths = PREFIX+'/val'
+    test_image_paths = PREFIX+'/test'
 
     # classe dataset que carregar arquivos e faz transformacoes
     dataset_train = MyDataset(train_image_paths, train=True)
@@ -77,12 +84,12 @@ def main():
 
     n_samples = len(dataset_train) + len(dataset_val)
 
-    train_dataloader = DataLoader(dataset_train, batch_size=mini_batch,
+    train_dataloader = DataLoader(dataset_train, batch_size=MINI_BATCH,
                                   shuffle=True,
                                   num_workers=NUM_WORKERS)
-    val_dataloader = DataLoader(dataset_val, batch_size=mini_batch,
+    val_dataloader = DataLoader(dataset_val, batch_size=MINI_BATCH,
                                 shuffle=False, num_workers=NUM_WORKERS+1)
-    test_dataloader = DataLoader(dataset_test, batch_size=mini_batch,
+    test_dataloader = DataLoader(dataset_test, batch_size=MINI_BATCH,
                                  shuffle=False, num_workers=1)
 
     loss_func = nn.CrossEntropyLoss()
@@ -98,9 +105,9 @@ def main():
     optim_args = {} 
 
     # train the model
-    train_and_validate(model, train_dataloader, val_dataloader, loss_func,
-                       optimizer, optim_args, mini_batch, num_epochs,
-                       start_epoch, device, cb)
+    train_and_validate_amp(model, train_dataloader, val_dataloader, loss_func,
+                           optimizer, optim_args, MINI_BATCH, NUM_EPOCHS,
+                           start_epoch, device, cb)
 
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H_%M')
@@ -108,8 +115,8 @@ def main():
     print("\nRunning model in test set...")
     model = cb.last_model
     best_model = cb.best_model
-    run_test(model, loss_func, test_dataloader, device, st, mini_batch, "normal")
-    run_test(best_model, loss_func, test_dataloader, device, st, mini_batch, "best")
+    run_test(model, loss_func, test_dataloader, device, st, MINI_BATCH, "normal")
+    run_test(best_model, loss_func, test_dataloader, device, st, MINI_BATCH, "best")
 
 
 if __name__ == '__main__':

@@ -37,34 +37,6 @@ class BaseCB(Callbacks):
     def __repr__(self):
         return 'BASE_Train'
 
-    # def begin_batch(self, inputs, labels):
-    #     self.train = True
-    #     if isinstance(inputs, dict):
-    #         for key in ['CC', 'MLO']:
-    #             inputs[key] = inputs[key].to(self.device)
-    #         labels = Variable(labels.to(self.device))
-    #     else:
-    #         inputs = Variable(inputs.to(self.device))
-    #         labels = Variable(labels.to(self.device))
-
-    #     print(inputs.shape, inputs.type())
-
-    #     return inputs, labels #, self.new_loss, self.new_calc_acc
-
-    # def begin_val(self):
-    #     """ Called each validation start """
-    #     self.train = False
-    #     if isinstance(inputs, dict):
-    #         for key in ['CC', 'MLO']:
-    #             inputs[key] = inputs[key].to(self.device)
-    #         labels = Variable(labels.to(self.device))
-    #     else:
-    #         inputs = Variable(inputs.to(self.device))
-    #         labels = Variable(labels.to(self.device))
-
-    #     return inputs, labels
-
-
     def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
         train_step = len(train_dataloader)
