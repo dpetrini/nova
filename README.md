@@ -156,7 +156,7 @@ By default will calculate AUC of second category of binary inputs. In our exampl
   session.run_test_auc(test_dataloader, "best")
 ```
 AUC Plots:
-| Per epoch AUC value | AUC for test dataset |
+| Per epoch AUC value | ROC Curve & AUC for test dataset |
 |----------|------|
 | ![Alt text](images/2020-09-22-17h35m_AUC_curve_AUC_08559.png?raw=true "Training AUC") | ![Alt text](images/2020-09-22-17h35m_Category_1_ROC.png?raw=true "Test AUC Curve") |
 

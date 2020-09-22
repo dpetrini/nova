@@ -1,6 +1,8 @@
 data_cats_dogs/*
 
 models_example/*
+plots_example/*
+plot_test_auc/*
 
 plot_train/*
 

@@ -26,11 +26,6 @@ def acc(y_hat, labels):
     return (torch.argmax(y_hat, dim=1) == labels).float().sum()
 
 
-
-# # Load Callbacks for this session
-# cb = CallbackHandler([BaseCB('example')])  # AUC_CB() , LR_SchedCB()
-
-
 class Trainer():
     """
     Many possible configurations for Trainer
@@ -65,7 +60,7 @@ class Trainer():
         print(self.title)
 
         # Load Callbacks for this session
-        callbacks = [BaseCB(self.name)]
+        callbacks = [BaseCB(self.name, self.title)]
         for feat in self.features:
             if feat == 'auc':
                 callbacks.append(AUC_CB(self.name))
@@ -87,7 +82,7 @@ class Trainer():
         input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
 
         if not self.cb.begin_train_val(self.epochs, self.model, self.train_dataloader,
-                                  self.val_dataloader, self.mini_batch, self.optimizer):
+                                       self.val_dataloader, self.mini_batch, self.optimizer):
             return
 
         self.cb.update_loss(self.loss_criterion, calc_acc)

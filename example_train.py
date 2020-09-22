@@ -21,7 +21,7 @@ from dataset_example import MyDataset   # load our dataset class
 
 from trainer import Trainer
 
-DEVICE = 'gpu'      # 'cpu' #    # valid if parallel false
+DEVICE = 'gpu'      # 'cpu'
 GPU_NUMBER = 0
 
 PREFIX = 'data_cats_dogs'

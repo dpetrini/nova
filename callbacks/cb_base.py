@@ -21,7 +21,8 @@ from callbacks.cb import Callbacks    # base
 
 
 class BaseCB(Callbacks):
-    def __init__(self, name, save_models=True):
+    def __init__(self, name, title, save_models=True):
+        self.title = title
         self.save_models = save_models
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
@@ -136,11 +137,10 @@ class BaseCB(Callbacks):
                        f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
             print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
 
-
         # plots
         history = np.array(self.history)
         plt.plot(history[:, 0:2])
-        plt.title("Loss ")
+        plt.title(self.title+" - Loss")
         plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")
         plt.xlabel('Epoch Number')
         plt.ylabel('Loss')
@@ -151,7 +151,7 @@ class BaseCB(Callbacks):
         plt.clf()
 
         plt.plot(history[:, 2:4])
-        plt.title("ACC " + result_text)
+        plt.title(self.title+' - '+result_text)
         plt.legend(['Tr Accuracy', 'Val Accuracy'], loc="lower right")
         plt.xlabel('Epoch Number')
         plt.ylabel('Accuracy')
