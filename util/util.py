@@ -66,7 +66,7 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     plt.ylabel('True Positive Rate')
     plt.title(title)
     plt.legend(loc="lower right")
-    plt.savefig('plot_test_auc/'+str(st)+'_Maligno_ROC.png')
+    plt.savefig('plot_test_auc/'+str(st)+'_Category_1_ROC.png')
     if show_plt:
         plt.show()
 

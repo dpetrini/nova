@@ -10,11 +10,8 @@
 #   Num epochs: 50
 #   Batch size: 64
 #   Acc Train: 83.45  Acc Val: 81.10   Acc Test: 79.30
-#   Time @RTX2060:
+#   Time @RTX2060: 8.50 mins
 
-
-import datetime
-import time
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -22,17 +19,13 @@ from torch.utils.data import DataLoader
 from resnet50 import MyResnet50
 from dataset_example import MyDataset   # load our dataset class
 
-from callbacks.cb_handler import CallbackHandler
-from callbacks.cb_base import BaseCB
-from callbacks.cb_lr_patch_clf import LR_SchedCB
+from trainer import Trainer
 
-from learner import train_and_validate_amp, run_test
-
-device = 'gpu'      # 'cpu' #    # valid if parallel false
-gpu_number = 0
+DEVICE = 'gpu'      # 'cpu' #    # valid if parallel false
+GPU_NUMBER = 0
 
 PREFIX = 'data_cats_dogs'
-NUM_EPOCHS = 50
+NUM_EPOCHS = 10
 MINI_BATCH = 64
 LR = 3e-3
 PRE_TRAINED = True
@@ -53,7 +46,7 @@ def main():
     model.fc = nn.Linear(num_ftrs, 2)   # change for our 2 categories
 
     if not PRE_TRAINED:
-        # init para not pre-trained
+        # good init for not pre-trained
         print("Init weights with kaiming")
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -62,10 +55,8 @@ def main():
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    device = 'gpu'
-
-    if (device == "gpu") and torch.has_cudnn:
-        device = torch.device("cuda:{}".format(gpu_number))
+    if (DEVICE == "gpu") and torch.has_cudnn:
+        device = torch.device("cuda:{}".format(GPU_NUMBER))
     else:
         device = torch.device("cpu")
 
@@ -75,14 +66,12 @@ def main():
     val_image_paths = PREFIX+'/val'
     test_image_paths = PREFIX+'/test'
 
-    # classe dataset que carregar arquivos e faz transformacoes
+    # Load datasets
     dataset_train = MyDataset(train_image_paths, train=True)
     dataset_val = MyDataset(val_image_paths, train=False)
     dataset_test = MyDataset(test_image_paths, train=False)
 
     print('Size train:', len(dataset_train), ' Size val: ', len(dataset_val))
-
-    n_samples = len(dataset_train) + len(dataset_val)
 
     train_dataloader = DataLoader(dataset_train, batch_size=MINI_BATCH,
                                   shuffle=True,
@@ -96,27 +85,26 @@ def main():
 
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    optim_args = {}
 
-    start_epoch = 1
+    train_config = {
+        'num_epochs': NUM_EPOCHS,
+        'batch_size': MINI_BATCH,
+        'name': 'example',
+        'title': 'Cats & Dogs Classifier',
+        'features': ['auc'],
+    }
 
-    # Load Callbacks for this session
-    cb = CallbackHandler([BaseCB('example')])  # AUC_CB() , LR_SchedCB()
-
-    optim_args = {} 
+    session = Trainer(model, train_dataloader, val_dataloader, loss_func,
+                      optimizer, optim_args, device, train_config)
 
     # train the model
-    train_and_validate_amp(model, train_dataloader, val_dataloader, loss_func,
-                           optimizer, optim_args, MINI_BATCH, NUM_EPOCHS,
-                           start_epoch, device, cb)
+    session.train_and_validate_amp()
 
-    ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H_%M')
-
-    print("\nRunning model in test set...")
-    model = cb.last_model
-    best_model = cb.best_model
-    run_test(model, loss_func, test_dataloader, device, st, MINI_BATCH, "normal")
-    run_test(best_model, loss_func, test_dataloader, device, st, MINI_BATCH, "best")
+    print("\nRunning models in test set...")
+    session.run_test(test_dataloader, "normal")
+    session.run_test(test_dataloader, "best")
+    session.run_test_auc(test_dataloader, "best")
 
 
 if __name__ == '__main__':

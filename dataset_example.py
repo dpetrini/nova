@@ -123,8 +123,7 @@ class MyDataset(Dataset):
         shear = randint(-self.shear, self.shear)
 
         # AFFINE - all at once
-        image = affine(image, angle, (trans_x, trans_y), scale, shear,
-                       mode=cv2.BORDER_REFLECT)
+        image = affine(image, angle, (trans_x, trans_y), scale, shear, mode=cv2.BORDER_REFLECT)
 
         # flip {0: vertical, 1: horizontal, 2: both, 3: none}
         flip_num = randint(0, 3)
