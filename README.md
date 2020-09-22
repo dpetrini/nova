@@ -7,7 +7,7 @@ Idea is to keep simple and provide a simple entrance to PyTorch to a beginner re
 
 It is totally based in callbaks to insert new features like AUC (Aread Under Curve) stats and plots.
 
-There is available an example. More examples and features will be added soon.
+There is an example available. More examples and features will be added soon.
 
 ## Clone the repository and setup
  ```
@@ -22,15 +22,12 @@ export PYTHONPATH="/home/.../nova"
   - Base Training - run basic training and generates models, plots, etc.
   - Nice naming of generated models and plots making easy to track progress, automatically:
   ![Alt text](images/naming_features.png?raw=true "Naming features")
-  <p align="center">
-  <img width="460" height="300" src="images/naming_features.png">
-  </p>
   - AUC Stats - Calculates AUC for classification tasks, generates best auc model and plots.
   - More to come...
 
 # Configuration of Trainer
 
-By default training session will have accuracy statistics, last and best models and plots saved in 'models_example' and 'plots_example' folders respectively.
+By default, training session will have accuracy statistics, last and best models and plots saved in 'models_example' and 'plots_example' folders respectively (config 'name' = 'example', as below).
 
  - Select your training configuration:
  ```
@@ -65,7 +62,6 @@ The 'features' list is optional. It contains additional features to be considere
   ```
     Model: normal - Test accuracy : 0.626 Test loss : 0.699
     Model: best - Test accuracy : 0.672 Test loss : 0.626
-
   ```
 ## Features of Base Config
 
@@ -117,9 +113,9 @@ It has a total of 25k images, split equally between both categories. Please crea
 
  - Summary of results:
 
-| Number | Feature       | Accuracy (val.)     | Setup          |
+| Number | Feature       | Accuracy % (validation)     | Setup          |
 | ------ | ------------- | ------------- | -------------- |
-| 1 | Basic Resnet  | 0.7140  |  50 epochs, optim = Adam, LR = 3e-3, Init = Kaiming    |
+| 1 | Basic Resnet  | 71.40  |  50 epochs, optim = Adam, LR = 3e-3, Init = Kaiming    |
 | 2 | Basic Resnet pre-trained on imagenet | 81.10  | 50 epochs, optim = Adam, LR = 3e-3, AMP      |
 
 - Generated artifacts
@@ -148,7 +144,7 @@ Epoch: 008, Train: Loss: 0.6598, Acc: 59.15%, Val: Loss: 0.6377, Acc: 63.10%, Ti
  ```
 Yes nice and simple output in base configuration.
 
- - AUC Example generation
+ - AUC Example generation: 
 By default will calculate AUC of second category of binary inputs. In our example cats is first category (0), dogs is the second category (1), so the AUC is considering correct dog predictions.
  Steps:
  Make sure to include following line in train_config dictionary:
