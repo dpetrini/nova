@@ -108,7 +108,10 @@ class MyDataset(Dataset):
 
         # intensity shift
         beta = self.limit * random.uniform(-1, 1)
-        image = cv2.add(image, beta*self.max_brightness)
+        image[:, :, 0] = cv2.add(image[:, :, 0], beta*self.max_brightness)
+        image[:, :, 1] = cv2.add(image[:, :, 1], beta*self.max_brightness)
+        image[:, :, 2] = cv2.add(image[:, :, 2], beta*self.max_brightness)
+        # image = cv2.add(image, beta*self.max_brightness)
 
         # rotate, translation, scale and shift augs
         angle = randint(-self.angle, self.angle)

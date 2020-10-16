@@ -7,7 +7,7 @@ import torch.optim as optim
 from callbacks.cb import Callbacks    # base
 
 
-class LR_SchedCB(Callbacks):
+class LR_SchedCB_full(Callbacks):
     def __init__(self):
         #print("init Learning Rate sched patch clf.")
         pass
@@ -24,7 +24,7 @@ class LR_SchedCB(Callbacks):
 
             print('Fase 1: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 161:
+                if n < 261:   # 161:Resnet50,  261:ResNest50
                     param.requires_grad = False
             optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.003)
 
@@ -43,4 +43,4 @@ class LR_SchedCB(Callbacks):
             #print(cont, name)
             if param.requires_grad is True:
                 cont += 1
-        print('Updating {:3d} parameters.'.format(cont))
+        print(f'Updating {cont:3d} parameters.')

@@ -12,7 +12,7 @@ import torch.optim as optim
 from callbacks.cb import Callbacks    # base
 
 
-class LR_SchedCB(Callbacks):
+class LR_SchedCB_W_Cos(Callbacks):
     def __init__(self):
         print('Warm-up + cosine Learning Rate scheduler')
         # Some default values

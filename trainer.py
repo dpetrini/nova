@@ -6,7 +6,11 @@ from sklearn.metrics import roc_auc_score
 
 from callbacks.cb_handler import CallbackHandler
 from callbacks.cb_base import BaseCB
-from callbacks.cb_lr_patch_clf import LR_SchedCB
+from callbacks.cb_lr_patch_clf import LR_SchedCB_patch
+from callbacks.cb_lr_full_clf import LR_SchedCB_full
+from callbacks.cb_lr_2views_clf import LR_SchedCB_2views
+from callbacks.cb_lr_w_cyc_cos import LR_SchedCB_W_Cyc_Cos
+from callbacks.cb_lr_w_cos import LR_SchedCB_W_Cos
 from callbacks.cb_auc import AUC_CB
 
 # from parallel import DataParallelModel, DataParallelCriterion
@@ -30,12 +34,14 @@ class Trainer():
     """
     Many possible configurations for Trainer
     config = {
-        'num_epochs': 50,
-        'batch_size': 16,
+        'num_epochs': NUM_EPOCHS,
+        'batch_size': MINI_BATCH,
         'name': 'example',
         'title': 'Cats & Dogs Classifier',
-        'features': ['auc', 'lr_step', 'mixup'],
-        'start_epoch': 1
+        'save_last': True,          # optional: Save last model (default=False)
+        'save_best': True,          # optional: Save best model (default=True)
+        'features': ['auc'],
+        'make_plots': False,        # if want to disable plots
     }
     """
 
@@ -43,12 +49,8 @@ class Trainer():
                  loss_criterion, optimizer, optimizer_args,
                  device, config):
         self.model = model
-        self.train_dataloader = train_dataloader
-        self.val_dataloader = val_dataloader
-        self.loss_criterion = loss_criterion
-        self.optimizer = optimizer
-        self.optimizer_args = optimizer_args
         self.device = device
+        self.loss_criterion = loss_criterion
 
         self.epochs = int(config['num_epochs']) if 'num_epochs' in config else 10
         self.mini_batch = int(config['batch_size']) if 'batch_size' in config else 1
@@ -56,16 +58,35 @@ class Trainer():
         self.name = config['name'] if 'name' in config else 'default'
         self.title = config['title'] if 'title' in config else 'Classifier'
         self.features = config['features'] if 'features' in config else []
+        self.make_plots = config['make_plots'] if 'make_plots' in config else True
+
+        if train_dataloader:
+            self.train_dataloader = train_dataloader
+        else:
+            return
+
+        self.train_dataloader = train_dataloader
+        self.val_dataloader = val_dataloader
+        self.optimizer = optimizer
+        self.optimizer_args = optimizer_args
 
         print(self.title)
 
         # Load Callbacks for this session
-        callbacks = [BaseCB(self.name, self.title)]
+        callbacks = [BaseCB(self.name, self.title, config)]
         for feat in self.features:
             if feat == 'auc':
-                callbacks.append(AUC_CB(self.name))
-            if feat == 'lr_step':
-                callbacks.append(LR_SchedCB())
+                callbacks.append(AUC_CB(self.name, self.make_plots))
+            if feat == 'lr_step_full':
+                callbacks.append(LR_SchedCB_full())
+            if feat == 'lr_step_patch':
+                callbacks.append(LR_SchedCB_patch())
+            if feat == 'lr_step_2views':
+                callbacks.append(LR_SchedCB_2views())
+            if feat == 'lr_warmup_cos':
+                callbacks.append(LR_SchedCB_W_Cos())
+            if feat == 'lr_warmup_cyc_cos':
+                callbacks.append(LR_SchedCB_W_Cyc_Cos())
         self.cb = CallbackHandler(callbacks)
 
 
@@ -312,6 +333,8 @@ class Trainer():
             model = self.cb.last_model
         elif model_type == 'best':
             model = self.cb.best_model
+        elif model_type == 'test':
+            model = self.model
 
         test_acc, test_loss = 0., 0.
         batch_val_counter = 0
@@ -351,10 +374,11 @@ class Trainer():
         avg_test_acc = test_acc/batch_val_counter
 
         print(f"Model: {model_type} - Test accuracy : {avg_test_acc:.3f}" +
-              f" Test loss : {avg_test_loss:.3f}", end='')
+              f" Test loss : {avg_test_loss:.4f}", end='')
 
         # calculate AUC TEST
         auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
-        print(f' AUC Malignant: {auc_mal_val:.3f}')
+        print(f' AUC Malignant: {auc_mal_val:.4f}')
 
-        show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
+        if self.make_plots:
+            show_auc(label_auc, y_hat_auc, self.title, show_plt=False)

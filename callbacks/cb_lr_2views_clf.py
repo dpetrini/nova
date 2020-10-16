@@ -7,7 +7,7 @@ import torch.optim as optim
 from callbacks.cb import Callbacks    # base
 
 
-class LR_SchedCB(Callbacks):
+class LR_SchedCB_2views(Callbacks):
     def __init__(self):
         #print("init Learning Rate sched patch clf.")
         pass

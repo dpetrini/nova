@@ -15,6 +15,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchvision import models
 
 from resnet50 import MyResnet50
 from dataset_example import MyDataset   # load our dataset class
@@ -25,7 +26,7 @@ DEVICE = 'gpu'      # 'cpu'
 GPU_NUMBER = 0
 
 PREFIX = 'data_cats_dogs'
-NUM_EPOCHS = 10
+NUM_EPOCHS = 50
 MINI_BATCH = 64
 LR = 3e-3
 PRE_TRAINED = True
@@ -37,10 +38,12 @@ def main():
 
     torch.backends.cudnn.benchmark = True
 
-    if PRE_TRAINED:
-        model = MyResnet50(pretrained=True)
-    else:
-        model = MyResnet50()
+    # if PRE_TRAINED:
+    #     model = MyResnet50(pretrained=True)
+    # else:
+    #     model = MyResnet50()
+
+    model = models.resnet34(pretrained=True)
 
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 2)   # change for our 2 categories
@@ -91,7 +94,9 @@ def main():
         'num_epochs': NUM_EPOCHS,
         'batch_size': MINI_BATCH,
         'name': 'example',
-        'title': 'Cats & Dogs Classifier',
+        'title': 'Cats & Dogs Classifier Resnet50',
+        'save_last': True,          # Save last model (default=False)
+        'save_best': True,          # Save best model (default=True)
         'features': ['auc'],
     }
 

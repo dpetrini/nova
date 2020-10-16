@@ -17,19 +17,13 @@ from callbacks.cb import Callbacks    # base
 
 
 class AUC_CB(Callbacks):
-    def __init__(self, name):
+    def __init__(self, name, make_plots=True):
         self.name = name
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
-
+        self.make_plots = make_plots
         self.best_auc_ep = 0
         self.n_epoch = 0
-
-        # self.has_auc = False        # during tests
-        # self.y_hat_auc = []
-        # self.label_auc = []
-        # self.y_hat_val_auc = []
-        # self.label_val_auc = []
 
     def __repr__(self):
         return 'AUC_Stats'
@@ -99,18 +93,19 @@ class AUC_CB(Callbacks):
                    f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}.pt')
         print(f'cb_auc: Best auc model saved in {self.models_dir}/')
 
-        history = np.array(self.history)
-        plt.plot(history[:, 0:2])
-        plt.title(f'AUC - Classifier {self.name} {result_auc}')
-        plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
-        plt.xlabel('Epoch Number')
-        plt.ylabel('Area Under Curve')
-        plt.ylim(0, 1)
-        plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-        plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png')
-        #plt.show()
-        plt.clf()
+        if self.make_plots:
+            history = np.array(self.history)
+            plt.plot(history[:, 0:2])
+            plt.title(f'AUC - Classifier {self.name} {result_auc}')
+            plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
+            plt.xlabel('Epoch Number')
+            plt.ylabel('Area Under Curve')
+            plt.ylim(0, 1)
+            plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
+            plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
+            plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png')
+            #plt.show()
+            plt.clf()
 
         return True
 

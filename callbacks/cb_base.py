@@ -21,9 +21,16 @@ from callbacks.cb import Callbacks    # base
 
 
 class BaseCB(Callbacks):
-    def __init__(self, name, title, save_models=True):
+    def __init__(self, name, title, config):
+
+        # Podemos chamar init da classe mae (Callbacks) e passar config
+        # e entao usar algumas variaves comuns a todos callbacks
+        # como variaveis de classe. E faz sentido fazer isso no cb_base
+        # pois ele sempre é chamado.
+        # Assim todos cbs terao essas variaves ex. title pela classe.
+        # a classe mae pode expor tudo com @properties, @classmethod ou super() -> ver como melhor
+        #
         self.title = title
-        self.save_models = save_models
         self.models_dir = f'models_{name}'
         self.plots_dir = f'plots_{name}'
         if os.path.isdir(f'{self.models_dir}') is False:
@@ -33,6 +40,11 @@ class BaseCB(Callbacks):
             os.makedirs(f'{self.plots_dir}')
             print(f'Creating dir {self.plots_dir}')
 
+        self.save_last = config['save_last'] if 'save_last' in config else False
+        self.save_best = config['save_best'] if 'save_best' in config else True
+        self.make_plots = config['make_plots'] if 'make_plots' in config else True
+        
+        self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
 
     def __repr__(self):
@@ -54,7 +66,6 @@ class BaseCB(Callbacks):
         #self.bar_step_val = self.bar_step #// 4 if val_step >= 1 else 1
         print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}, bar_step:{self.bar_step} bar_step_val:{self.bar_step_val}')
         self.total_train_samples, self.total_val_samples = 0, 0
-        self.best_val_acc = 0.3
         self.n_epoch = 0
         self.history = []
         self.start = time.time()
@@ -89,7 +100,8 @@ class BaseCB(Callbacks):
 
         if avg_val_acc > self.best_val_acc:
             print(f' |------>  Best Val Acc model now {avg_val_acc:1.4f}')
-            self._best_model = copy.deepcopy(model)  # Will work
+            if self.save_best:
+                self._best_model = copy.deepcopy(model)  # Will work
             self.best_val_acc = avg_val_acc
             self.best_val_acc_ep = self.n_epoch
         else: print()   # noop
@@ -130,37 +142,41 @@ class BaseCB(Callbacks):
         print(result_text)
 
         # save the model
-        if self.save_models:
+        if self.save_last:
             torch.save(self._model.state_dict(),
                        f'{self.models_dir}/{summary}_model.pt')
+            print(f'cb_base: Last model saved in {self.models_dir}/')
+        if self.save_best:
             torch.save(self._best_model.state_dict(),
                        f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
-            print(f'cb_base: Last and best acc models saved in {self.models_dir}/')
+            print(f'cb_base: Best acc model saved in {self.models_dir}/')
+
 
         # plots
-        history = np.array(self.history)
-        plt.plot(history[:, 0:2])
-        plt.title(self.title+" - Loss")
-        plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")
-        plt.xlabel('Epoch Number')
-        plt.ylabel('Loss')
-        plt.ylim(0, 3)
-        plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
-        #plt.show()
-        plt.clf()
+        if self.make_plots:
+            history = np.array(self.history)
+            plt.plot(history[:, 0:2])
+            plt.title(self.title+" - Loss")
+            plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")
+            plt.xlabel('Epoch Number')
+            plt.ylabel('Loss')
+            plt.ylim(0, 3)
+            plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
+            plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
+            #plt.show()
+            plt.clf()
 
-        plt.plot(history[:, 2:4])
-        plt.title(self.title+' - '+result_text)
-        plt.legend(['Tr Accuracy', 'Val Accuracy'], loc="lower right")
-        plt.xlabel('Epoch Number')
-        plt.ylabel('Accuracy')
-        plt.ylim(0, 1)
-        plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-        plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
-        plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-        #plt.show()
-        plt.clf()
+            plt.plot(history[:, 2:4])
+            plt.title(self.title+' - '+result_text)
+            plt.legend(['Tr Accuracy', 'Val Accuracy'], loc="lower right")
+            plt.xlabel('Epoch Number')
+            plt.ylabel('Accuracy')
+            plt.ylim(0, 1)
+            plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
+            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
+            plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
+            #plt.show()
+            plt.clf()
 
         return True
 
