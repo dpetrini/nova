@@ -42,6 +42,7 @@ class BaseCB(Callbacks):
 
         self.save_last = config['save_last'] if 'save_last' in config else False
         self.save_best = config['save_best'] if 'save_best' in config else True
+        self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         
         self.best_val_acc = 0.05
@@ -163,7 +164,8 @@ class BaseCB(Callbacks):
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
-            #plt.show()
+            if self.show_plots:
+                plt.show()
             plt.clf()
 
             plt.plot(history[:, 2:4])
@@ -175,7 +177,8 @@ class BaseCB(Callbacks):
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-            #plt.show()
+            if self.show_plots:
+                plt.show()
             plt.clf()
 
         return True

@@ -41,6 +41,7 @@ class Trainer():
         'save_last': True,          # optional: Save last model (default=False)
         'save_best': True,          # optional: Save best model (default=True)
         'features': ['auc'],
+        'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
     }
     """
