@@ -41,6 +41,7 @@ class Trainer():
         'save_last': True,          # optional: Save last model (default=False)
         'save_best': True,          # optional: Save best model (default=True)
         'features': ['auc'],
+        'save_path': folder/,       # if want to save artifacts in other place (ends with /)
         'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
     }
@@ -53,6 +54,7 @@ class Trainer():
         self.device = device
         self.loss_criterion = loss_criterion
 
+        # parts of config are only retrieved in callbacks
         self.epochs = int(config['num_epochs']) if 'num_epochs' in config else 10
         self.mini_batch = int(config['batch_size']) if 'batch_size' in config else 1
         self.first_epoch = int(config['start_epoch']) if 'start_epoch' in config else 1
