@@ -31,8 +31,9 @@ class BaseCB(Callbacks):
         # a classe mae pode expor tudo com @properties, @classmethod ou super() -> ver como melhor
         #
         self.title = title
-        self.models_dir = f'models_{name}'
-        self.plots_dir = f'plots_{name}'
+        self.save_path = config['save_path'] if 'save_path' in config else '' # TODO check if valid
+        self.models_dir = f'{self.save_path}models_{name}'
+        self.plots_dir = f'{self.save_path}plots_{name}'
         if os.path.isdir(f'{self.models_dir}') is False:
             os.makedirs(f'{self.models_dir}')
             print(f'Creating dir {self.models_dir}')
@@ -44,7 +45,7 @@ class BaseCB(Callbacks):
         self.save_best = config['save_best'] if 'save_best' in config else True
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
-        self.save_path = config['save_path'] if 'save_path' in config else '' # TODO check if valid
+        
         
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
