@@ -31,7 +31,12 @@ class BaseCB(Callbacks):
         # a classe mae pode expor tudo com @properties, @classmethod ou super() -> ver como melhor
         #
         self.title = title
-        self.save_path = config['save_path'] if 'save_path' in config else '' # TODO check if valid
+        if 'save_path' in config:
+            self.save_path = config['save_path']
+            if not self.save_path.endswith('/'):
+                self.save_path += '/'
+        else:
+            self.save_path = ''
         self.models_dir = f'{self.save_path}models_{name}'
         self.plots_dir = f'{self.save_path}plots_{name}'
         if os.path.isdir(f'{self.models_dir}') is False:
@@ -45,8 +50,7 @@ class BaseCB(Callbacks):
         self.save_best = config['save_best'] if 'save_best' in config else True
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
-        
-        
+
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
 
@@ -147,11 +151,11 @@ class BaseCB(Callbacks):
         # save the model
         if self.save_last:
             torch.save(self._model.state_dict(),
-                       f'{self.save_path}{self.models_dir}/{summary}_model.pt')
+                       f'{self.models_dir}/{summary}_model.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
         if self.save_best:
             torch.save(self._best_model.state_dict(),
-                       f'{self.save_path}{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
+                       f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
             print(f'cb_base: Best acc model saved in {self.models_dir}/')
 
 
@@ -165,7 +169,7 @@ class BaseCB(Callbacks):
             plt.ylabel('Loss')
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.save_path}{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
+            plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
             if self.show_plots:
                 plt.show()
             plt.clf()
@@ -177,7 +181,7 @@ class BaseCB(Callbacks):
             plt.ylabel('Accuracy')
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.save_path}{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
+            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
             if self.show_plots:
                 plt.show()

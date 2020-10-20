@@ -41,7 +41,7 @@ class Trainer():
         'save_last': True,          # optional: Save last model (default=False)
         'save_best': True,          # optional: Save best model (default=True)
         'features': ['auc'],
-        'save_path': folder/,       # if want to save artifacts in other place (ends with /)
+        'save_path': folder,        # if want to save artifacts in other place (eg.cloud)
         'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
     }

@@ -5,7 +5,9 @@ It is totally based in PyTorch, get some ideas from fast.ai courses and aim is t
 
 Idea is to keep simple and provide a simple entrance to PyTorch to a beginner researcher.
 
-It is totally based in callbaks to insert new features like AUC (Aread Under Curve) stats and plots.
+You configure the features you need in a simple structure (dictionary) and the engine will enable the resources easily. New features are added in this way, making compatibility among upgrades.
+
+If you want to add new features, like a scheduler for instance, just look in the code and change according to your needs. The proposal is to keep code simple and readable to make customisations easier.
 
 There is an example available. More examples and features will be added soon.
 
@@ -36,7 +38,12 @@ By default, training session will have accuracy statistics, last and best models
         'batch_size': MINI_BATCH,
         'name': 'example',
         'title': 'Cats & Dogs Classifier',
-        'features': ['auc'],
+        'features': ['auc', 'lr_warmup_cyc_cos'],   # add stats, schedulers
+        'save_last': True,          # optional: Save last model (default=False)
+        'save_best': True,          # optional: Save best model (default=True)
+        'save_path': folder/,       # if want to save artifacts in other place (default=current)
+        'show_plots': False,        # if want to show plots opening window
+        'make_plots': False,        # if want to disable plots
     }
  ```
 
