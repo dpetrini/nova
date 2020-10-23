@@ -79,7 +79,7 @@ class Trainer():
         callbacks = [BaseCB(self.name, self.title, config)]
         for feat in self.features:
             if feat == 'auc':
-                callbacks.append(AUC_CB(self.name, self.make_plots))
+                callbacks.append(AUC_CB(self.name, config))
             if feat == 'lr_step_full':
                 callbacks.append(LR_SchedCB_full())
             if feat == 'lr_step_patch':

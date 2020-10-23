@@ -17,11 +17,17 @@ from callbacks.cb import Callbacks    # base
 
 
 class AUC_CB(Callbacks):
-    def __init__(self, name, make_plots=True):
+    def __init__(self, name, config):
         self.name = name
-        self.models_dir = f'models_{name}'
-        self.plots_dir = f'plots_{name}'
-        self.make_plots = make_plots
+        self.make_plots = config['make_plots'] if 'make_plots' in config else True
+        if 'save_path' in config:
+            self.save_path = config['save_path']
+            if not self.save_path.endswith('/'):
+                self.save_path += '/'
+        else:
+            self.save_path = ''
+        self.models_dir = f'{self.save_path}models_{name}'
+        self.plots_dir = f'{self.save_path}plots_{name}'
         self.best_auc_ep = 0
         self.n_epoch = 0
 
