@@ -16,6 +16,7 @@ class LR_SchedCB_full(Callbacks):
         """Prepare optimizer according to epoch. """
 
         ep_stage1 = optim_args['stages']
+        parameter_stage1 = optim_args['param_stage1']
         use_wd = optim_args['use_wd'] if optim_args['use_wd'] else False
         #use_wd = kwargs.get('use_wd') if kwargs.get('use_wd') else False
 
@@ -24,7 +25,7 @@ class LR_SchedCB_full(Callbacks):
 
             print('Fase 1: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 261:   # 161:Resnet50,  261:ResNest50
+                if n < parameter_stage1:    # 161:Resnet50,  261:ResNest50
                     param.requires_grad = False
             optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.003)
 

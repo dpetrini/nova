@@ -2,6 +2,12 @@
 # Eventually put more private vars?
 
 class Callbacks():
+    """
+        Pattern for callbacks. Maybe turn into an abstract class???
+        Also: create class vars to share among objects?
+    """
+    #epochs = 0      # class variable
+
     def __init__(self):
         pass
 
@@ -28,9 +34,6 @@ class Callbacks():
         return True
 
     def after_step(self, *args):   # train
-        return True
-
-    def begin_val(self, *args):
         return True
 
     def after_step_val(self, *args):
