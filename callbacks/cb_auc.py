@@ -76,7 +76,7 @@ class AUC_CB(Callbacks):
         self.history.append([auc_malign_train, auc_malign_val])
         if (auc_malign_val > self.best_auc):
             print(f' |------>  Best Val Auc model now {auc_malign_val:1.4f}')
-            self.best_model = copy.deepcopy(model)  # Will work                
+            self.best_model = copy.deepcopy(model)  # Will work
             self.best_auc = auc_malign_val
             self.best_auc_ep = self.n_epoch
         else: print()   # noop

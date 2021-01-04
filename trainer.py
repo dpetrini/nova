@@ -44,6 +44,7 @@ class Trainer():
         'save_path': folder,        # if want to save artifacts in other place (eg.cloud)
         'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
+        'cv_k': (number),           # interactio number if using Cross Validation
     }
     """
 
@@ -321,6 +322,8 @@ class Trainer():
         print(f'Model: {model_type} - Test accuracy : {avg_test_acc:.3f}' +
               f' Test loss : {avg_test_loss:.3f}')
 
+        return avg_test_acc 
+
 
     def run_test_auc(self, test_dataloader, model_type, **kwargs):
         """ Run test from test_dataloader, calculating AUC and ROC curve
@@ -385,3 +388,5 @@ class Trainer():
 
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
+        
+        return auc_mal_val

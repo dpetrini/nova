@@ -27,7 +27,7 @@ class LR_SchedCB_full(Callbacks):
             for n, param in enumerate(model.parameters()):
                 if n < parameter_stage1:    # 161:Resnet50,  261:ResNest50
                     param.requires_grad = False
-            optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.003)
+            optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.003) # padrao: 1e-4
 
         if epoch >= ep_stage1:  # and epoch < ep_stage2:
             print('Fase 2: ', end='')

@@ -50,6 +50,8 @@ class BaseCB(Callbacks):
         self.save_best = config['save_best'] if 'save_best' in config else True
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
+        self.cv_k = config['cv_k'] if 'cv_k' in config else False
+        self.cv_support = True if 'cv_k' in config else False
 
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
@@ -148,6 +150,12 @@ class BaseCB(Callbacks):
         acc_value = f'{self.best_val_acc:1.4f}'[-4:]
         print(result_text)
 
+        # Cross validation sufix, if configured
+        if self.cv_support:
+            cv_sufix = '_cv_'+str(self.cv_k)
+        else:
+            cv_sufix = ''
+
         # save the model
         if self.save_last:
             torch.save(self._model.state_dict(),
@@ -155,7 +163,7 @@ class BaseCB(Callbacks):
             print(f'cb_base: Last model saved in {self.models_dir}/')
         if self.save_best:
             torch.save(self._best_model.state_dict(),
-                       f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}.pt')
+                       f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}.pt')
             print(f'cb_base: Best acc model saved in {self.models_dir}/')
 
 
@@ -169,7 +177,7 @@ class BaseCB(Callbacks):
             plt.ylabel('Loss')
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}.png')
+            plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}.png')
             if self.show_plots:
                 plt.show()
             plt.clf()
@@ -181,7 +189,7 @@ class BaseCB(Callbacks):
             plt.ylabel('Accuracy')
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}.png')
+            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png')
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
             if self.show_plots:
                 plt.show()
