@@ -17,19 +17,20 @@ class LR_SchedCB_patch(Callbacks):
 
         ep_stage1, ep_stage2, ep_stage3 = optim_args['stages']
         use_wd = optim_args['use_wd'] if optim_args['use_wd'] else False
+        param_stage1, param_stage2 = optim_args['param_stage']
 
         # set differnt LR for different trainable layers and epoch
         if epoch < ep_stage1:
             print('Fase1: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 159:
+                if n < param_stage1:  #159:
                     param.requires_grad = False
             optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
         if epoch >= ep_stage1 and epoch < ep_stage2:
             print('Fase2: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 141:  # 151:
+                if n < param_stage2:  #141:  # 151:
                     param.requires_grad = False
                 else:
                     param.requires_grad = True
@@ -43,12 +44,12 @@ class LR_SchedCB_patch(Callbacks):
             optimizer = optim.Adam(model.parameters(), lr=1e-5,
                                    weight_decay=0.004 if use_wd else 0)
 
-        if epoch > ep_stage3:
-            print('Fase 4: ', end='')
-            for param in model.parameters():
-                param.requires_grad = True
-            optimizer = optim.Adam(model.parameters(), lr=1e-5,
-                                   weight_decay=0.001 if use_wd else 0)
+        # if epoch > ep_stage3:
+        #     print('Fase 4: ', end='')
+        #     for param in model.parameters():
+        #         param.requires_grad = True
+        #     optimizer = optim.Adam(model.parameters(), lr=1e-5,
+        #                            weight_decay=0.001 if use_wd else 0)
 
         # Check # of parameters to be updated
         cont = 0
