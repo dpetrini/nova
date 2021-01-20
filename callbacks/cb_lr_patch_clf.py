@@ -37,7 +37,7 @@ class LR_SchedCB_patch(Callbacks):
             optimizer = optim.Adam(model.parameters(), lr=1e-4,
                                    weight_decay=0.005 if use_wd else 0)
 
-        if epoch >= ep_stage2 and epoch <= ep_stage3:
+        if epoch >= ep_stage2: # and epoch <= ep_stage3:
             print('Fase 3: ', end='')
             for param in model.parameters():
                 param.requires_grad = True
