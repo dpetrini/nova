@@ -91,6 +91,8 @@ class Trainer():
                 callbacks.append(LR_SchedCB_W_Cos())
             if feat == 'lr_warmup_cyc_cos':
                 callbacks.append(LR_SchedCB_W_Cyc_Cos())
+            if feat == 'LR_SchedCB_W_Cos':
+                callbacks.append(LR_SchedCB_W_Cos())
         self.cb = CallbackHandler(callbacks)
 
 

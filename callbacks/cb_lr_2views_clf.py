@@ -22,14 +22,14 @@ class LR_SchedCB_2views(Callbacks):
         if epoch < ep_stage1:
             print('Fase1: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 211:     # APENAS FCs MID:211  MIDThin:185 TOP:187
+                if n < 173: #185:     # APENAS FCs MID:209 (old:211)  MIDThin:185 TOP:185 (187-OLD)
                     param.requires_grad = False
             optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
         if epoch >= ep_stage1 and epoch < ep_stage2:
             print('Fase2: ', end='')
             for n, param in enumerate(model.parameters()):
-                if n < 187:  # (novo Resblock) MID: 187  MIDThin: 161  TOP: pula este
+                if n < 159: # 185:  # (novo Resblock) MID: 185 (old:187)  MIDThin: 161  TOP: pula este
                     param.requires_grad = False
                 else:
                     param.requires_grad = True

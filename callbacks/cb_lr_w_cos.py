@@ -17,8 +17,8 @@ class LR_SchedCB_W_Cos(Callbacks):
         print('Warm-up + cosine Learning Rate scheduler')
         # Some default values
         self.warmup = 5
-        self.base_lr = 1e-3
-        self.epochs = 50
+        self.base_lr = 3e-4
+        self.epochs = 20
         self.next_lr = 0
         self.res = []
 
@@ -62,7 +62,8 @@ class LR_SchedCB_W_Cos(Callbacks):
         pass
 
     def after_train_val(self):
-        x_axis = range(1, self.epochs+1)
-        plt.plot(x_axis, self.res)
-        plt.legend(['Warm+Cosine LR'], loc="upper right")
-        plt.show()
+        pass
+        # x_axis = range(1, self.epochs+1)
+        # plt.plot(x_axis, self.res)
+        # plt.legend(['Warm+Cosine LR'], loc="upper right")
+        # plt.show()
