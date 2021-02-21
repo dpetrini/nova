@@ -17,8 +17,8 @@ class LR_SchedCB_W_Cos(Callbacks):
         print('Warm-up + cosine Learning Rate scheduler')
         # Some default values
         self.warmup = 5
-        self.base_lr = 3e-4
-        self.epochs = 20
+        self.base_lr = 1e-5  # patch clf:3e-4
+        self.epochs = 40     # patch clf:20
         self.next_lr = 0
         self.res = []
 
@@ -31,6 +31,9 @@ class LR_SchedCB_W_Cos(Callbacks):
 
     def update_LR(self, epoch, model, optimizer, optim_args): #, stages, **kwargs):
         """Prepare optimizer according to epoch. """
+
+        self.base_lr = optim_args['base_lr'] if 'base_lr' in optim_args else self.base_lr
+        self.warmup = optim_args['warmup'] if 'warmup' in optim_args else self.warmup
 
         if epoch < 1: epoch = 1
 
@@ -66,4 +69,5 @@ class LR_SchedCB_W_Cos(Callbacks):
         # x_axis = range(1, self.epochs+1)
         # plt.plot(x_axis, self.res)
         # plt.legend(['Warm+Cosine LR'], loc="upper right")
-        # plt.show()
+        # plt.savefig(f'Warm+Cosine_LR.png')
+        # # plt.show()
