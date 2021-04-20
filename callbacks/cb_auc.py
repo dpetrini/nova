@@ -20,6 +20,7 @@ class AUC_CB(Callbacks):
     def __init__(self, name, config):
         self.name = name
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
+        self.save_best = config['save_best'] if 'save_best' in config else True
         if 'save_path' in config:
             self.save_path = config['save_path']
             if not self.save_path.endswith('/'):
@@ -95,9 +96,10 @@ class AUC_CB(Callbacks):
         print(result_auc)
 
         # save the model
-        torch.save(self.best_model.state_dict(),
-                   f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}.pt')
-        print(f'cb_auc: Best auc model saved in {self.models_dir}/')
+        if self.save_best:
+            torch.save(self.best_model.state_dict(),
+                    f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}.pt')
+            print(f'cb_auc: Best auc model saved in {self.models_dir}/')
 
         if self.make_plots:
             history = np.array(self.history)
