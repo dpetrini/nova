@@ -332,17 +332,20 @@ class Trainer():
             According to model_type:
             if model_type = 'normal' : use last saved model
             if model_type = 'best' : use best model
+            If we are running test iunference only can pass model through kwargs.
             Uses: loss function from Trainer
             Input: test_dataloader
         """
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+        model = kwargs.get('model') if kwargs.get('model') else None
 
-        if model_type == 'normal':
-            model = self.cb.last_model
-        elif model_type == 'best':
-            model = self.cb.best_model
-        elif model_type == 'test':
-            model = self.model
+        if model is None:
+            if model_type == 'normal':
+                model = self.cb.last_model
+            elif model_type == 'best':
+                model = self.cb.best_model
+            elif model_type == 'test':
+                model = self.model
 
         test_acc, test_loss = 0., 0.
         batch_val_counter = 0
