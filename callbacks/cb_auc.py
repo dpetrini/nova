@@ -21,6 +21,9 @@ class AUC_CB(Callbacks):
         self.name = name
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.save_best = config['save_best'] if 'save_best' in config else True
+        self.cv_k = config['cv_k'] if 'cv_k' in config else False
+        self.cv_support = True if 'cv_k' in config else False
+
         if 'save_path' in config:
             self.save_path = config['save_path']
             if not self.save_path.endswith('/'):
@@ -91,14 +94,20 @@ class AUC_CB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep'#+str(n_samples)+'n'
 
-        result_auc = f"Best AUC: {self.best_auc:1.4f}  (@ep {self.best_auc_ep})"
+        # Cross validation sufix, if configured
+        if self.cv_support:
+            cv_sufix = '_cv_'+str(self.cv_k)
+        else:
+            cv_sufix = ''
+
+        result_auc = f"Best AUC: {self.best_auc:1.4f}  (@ep {self.best_auc_ep}) {cv_sufix}"
         auc_value = f'{self.best_auc:1.4f}'[-4:]
         print(result_auc)
 
         # save the model
         if self.save_best:
             torch.save(self.best_model.state_dict(),
-                    f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}.pt')
+                    f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt')
             print(f'cb_auc: Best auc model saved in {self.models_dir}/')
 
         if self.make_plots:

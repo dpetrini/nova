@@ -146,20 +146,20 @@ class BaseCB(Callbacks):
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
         summary = str(st)+'_'+str(self.epochs)+'ep_'+str(n_samples)+'n'
 
-        result_text = f"Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep})"
-        acc_value = f'{self.best_val_acc:1.4f}'[-4:]
-        print(result_text)
-
         # Cross validation sufix, if configured
         if self.cv_support:
             cv_sufix = '_cv_'+str(self.cv_k)
         else:
             cv_sufix = ''
 
+        result_text = f"Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix}"
+        acc_value = f'{self.best_val_acc:1.4f}'[-4:]
+        print(result_text)
+
         # save the model
         if self.save_last:
             torch.save(self._model.state_dict(),
-                       f'{self.models_dir}/{summary}_model.pt')
+                       f'{self.models_dir}/{summary}_last_model{cv_sufix}.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
         if self.save_best:
             torch.save(self._best_model.state_dict(),

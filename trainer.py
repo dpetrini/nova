@@ -18,6 +18,8 @@ from util.util import show_auc
 
 parallel = False
 
+#APAGAR
+import cv2
 
 # Accuracy
 def acc(y_hat, labels):
@@ -39,8 +41,8 @@ class Trainer():
         'name': 'example',
         'title': 'Cats & Dogs Classifier',
         'save_last': True,          # optional: Save last model (default=False)
-        'save_best': True,          # optional: Save best model (default=True)
-        'features': ['auc'],
+        'save_best': True,          # optional: Save best models (ACC, {AUC}) (default=True)
+        'features': ['auc'],        # optional: features like auc stats or some scheduler (if none default:optim)
         'save_path': folder,        # if want to save artifacts in other place (eg.cloud)
         'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
@@ -379,6 +381,92 @@ class Trainer():
                 # enter show result mode
                 if self.mini_batch == 1:
                     print(f'{labels.item()}  {torch.softmax(outputs, dim=1)[:, 1].item():.3f}')
+
+        # Find average test loss and test accuracy
+        avg_test_loss = test_loss/batch_val_counter
+        avg_test_acc = test_acc/batch_val_counter
+
+        print(f"Model: {model_type} - Test accuracy : {avg_test_acc:.3f}" +
+              f" Test loss : {avg_test_loss:.4f}", end='')
+
+        # calculate AUC TEST
+        auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
+        print(f' AUC Malignant: {auc_mal_val:.4f}')
+
+        if self.make_plots:
+            show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
+        
+        return auc_mal_val
+
+
+    # Not fully tested yet (2021-05)
+    # it seems to be working - maybe integrate in single function as above
+    #  and use kwargs to indicate that it is test-data- aug?
+    def run_test_data_aug_auc(self, test_dataloader, model_type, **kwargs):
+        """ Run test from test_dataloader, calculating AUC and ROC curve
+            --> Using test-data augmentation: rotation 0°, 90°, 180°, 270°
+            --> All rotated sample will be infered and AUC will consider all.
+            According to model_type:
+            if model_type = 'normal' : use last saved model
+            if model_type = 'best' : use best model
+            If we are running test iunference only can pass model through kwargs.
+            Uses: loss function from Trainer
+            Input: test_dataloader
+        """
+        calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+        model = kwargs.get('model') if kwargs.get('model') else None
+
+        if model is None:
+            if model_type == 'normal':
+                model = self.cb.last_model
+            elif model_type == 'best':
+                model = self.cb.best_model
+            elif model_type == 'test':
+                model = self.model
+
+        test_acc, test_loss = 0., 0.
+        batch_val_counter = 0
+        y_hat_auc, label_auc = [], []
+        device = self.device
+
+        with torch.no_grad():
+            model.eval()
+
+            # validation loop
+            for _, (inputs, labels) in enumerate(test_dataloader):
+                for rot in range(0,4):
+                    
+                    # print(rot, inputs.shape)
+                    inputs = torch.rot90(inputs, rot, [2, 3])
+                    # inputs = Variable(inputs.to(device))
+                    # labels = Variable(labels.to(device))
+                    # print(counter, rot, inputs.shape)
+
+                    inputs = Variable(inputs.to(device))
+                    labels = Variable(labels.to(device))
+
+                    # img = inputs.cpu().detach().numpy()
+                    # img = img.transpose(0,2,3,1)
+                    # print(img[0, :, :, 0:3].shape)
+                    # cv2.imwrite('thrash/test-aug_'+str(rot)+'.png', img[0, :, :, 0:3]*65535)
+
+                    outputs = model(inputs)                         # forward pass
+                    loss = self.loss_criterion(outputs, labels)     # compute loss
+                    test_loss += loss.item() * labels.size(0)
+
+                    # calculate acc
+                    test_acc += calc_acc(outputs, labels).item()
+                    batch_val_counter += labels.size(0)
+
+                    # Store auc for malignant
+                    label_auc = np.append(label_auc, labels.cpu().detach().numpy())
+                    y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
+
+                    # enter show result mode
+                    if self.mini_batch == 1:
+                        print(f'{labels.item()}  {torch.softmax(outputs, dim=1)[:, 1].item():.3f}')
+
+        print('batch_val_counter ', batch_val_counter)
 
         # Find average test loss and test accuracy
         avg_test_loss = test_loss/batch_val_counter
