@@ -19,6 +19,7 @@ from callbacks.cb import Callbacks    # base
 class AUC_CB(Callbacks):
     def __init__(self, name, config):
         self.name = name
+        self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.save_best = config['save_best'] if 'save_best' in config else True
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
@@ -121,7 +122,8 @@ class AUC_CB(Callbacks):
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
             plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png')
-            #plt.show()
+            if self.show_plots:
+                plt.show()
             plt.clf()
 
         return True

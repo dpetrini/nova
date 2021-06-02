@@ -189,8 +189,8 @@ class BaseCB(Callbacks):
             plt.ylabel('Accuracy')
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png')
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
+            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png')
             if self.show_plots:
                 plt.show()
             plt.clf()
