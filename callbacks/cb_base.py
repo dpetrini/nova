@@ -48,6 +48,7 @@ class BaseCB(Callbacks):
 
         self.save_last = config['save_last'] if 'save_last' in config else False
         self.save_best = config['save_best'] if 'save_best' in config else True
+        self.save_checkpoints = config['save_checkpoints'] if 'save_checkpoints' in config else 0 # number of every X to save
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
@@ -115,6 +116,16 @@ class BaseCB(Callbacks):
             self.best_val_acc_ep = self.n_epoch
         else: print()   # noop
 
+        # save checkpoint
+        if self.save_checkpoints > 0 and self.n_epoch%self.save_checkpoints == 0:
+            cv_sufix = '_cv_'+str(self.cv_k) if self.cv_support else ''
+            ts = time.time()
+            st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
+            summary = str(st)+'_ep'+str(self.n_epoch)
+            torch.save(self._model.state_dict(),
+                       f'{self.models_dir}/{summary}_model{cv_sufix}.pt')
+            print(f'cb_base: Last checkpoint saved in {self.models_dir}/')
+
         epoch_end = time.time()
         print('Epoch: {:03d}, Train: Loss: {:.4f}, Acc: {:.2f}%,' \
               ' Val: Loss: {:0.4f}, Acc: {:.2f}%, Time: {:.2f}s'
@@ -147,10 +158,7 @@ class BaseCB(Callbacks):
         summary = str(st)+'_'+str(self.epochs)+'ep_'+str(n_samples)+'n'
 
         # Cross validation sufix, if configured
-        if self.cv_support:
-            cv_sufix = '_cv_'+str(self.cv_k)
-        else:
-            cv_sufix = ''
+        cv_sufix = '_cv_'+str(self.cv_k) if self.cv_support else ''  # 2021-06-15
 
         result_text = f"Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix}"
         acc_value = f'{self.best_val_acc:1.4f}'[-4:]

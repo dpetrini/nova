@@ -42,6 +42,7 @@ class Trainer():
         'title': 'Cats & Dogs Classifier',
         'save_last': True,          # optional: Save last model (default=False)
         'save_best': True,          # optional: Save best models (ACC, {AUC}) (default=True)
+        'save_checkpoints': N,      # Save checkpoint each N epochs
         'features': ['auc'],        # optional: features like auc stats or some scheduler (if none default:optim)
         'save_path': folder,        # if want to save artifacts in other place (eg.cloud)
         'show_plots': False,        # if want to show plots
