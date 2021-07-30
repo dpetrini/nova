@@ -69,5 +69,5 @@ class LR_SchedCB_W_Cos(Callbacks):
         # x_axis = range(1, self.epochs+1)
         # plt.plot(x_axis, self.res)
         # plt.legend(['Warm+Cosine LR'], loc="upper right")
-        # plt.savefig(f'Warm+Cosine_LR.png')
-        # # plt.show()
+        # # plt.savefig(f'./Warm+Cosine_LR.png')
+        # plt.show()

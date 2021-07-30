@@ -41,3 +41,6 @@ class Callbacks():
 
     def after_train_val(self, *args):
         return True
+    
+    def best_metric_epoch(self, *args):
+        return True

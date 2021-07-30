@@ -50,4 +50,4 @@ class LR_SchedCB_full(Callbacks):
             #print(cont, name)
             if param.requires_grad is True:
                 cont += 1
-        print(f'Updating {cont:3d} parameters.')
+        print(f'Updating {cont:3d} layers.')

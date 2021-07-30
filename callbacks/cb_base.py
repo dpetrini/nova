@@ -79,6 +79,7 @@ class BaseCB(Callbacks):
         self.n_epoch = 0
         self.history = []
         self.start = time.time()
+        self.cp_count = 1
         return True
 
     def begin_epoch(self, current_epoch):
@@ -121,7 +122,8 @@ class BaseCB(Callbacks):
             cv_sufix = '_cv_'+str(self.cv_k) if self.cv_support else ''
             ts = time.time()
             st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
-            summary = str(st)+'_ep'+str(self.n_epoch)
+            summary = str(st)+'_ep'+str(self.n_epoch) + '_cp' + str(self.cp_count)
+            self.cp_count += 1
             torch.save(self._model.state_dict(),
                        f'{self.models_dir}/{summary}_model{cv_sufix}.pt')
             print(f'cb_base: Last checkpoint saved in {self.models_dir}/')

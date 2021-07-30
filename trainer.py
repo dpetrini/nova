@@ -1,3 +1,4 @@
+from matplotlib.pyplot import show
 import torch
 from torch.autograd import Variable
 from torch.cuda.amp import GradScaler, autocast
@@ -42,6 +43,7 @@ class Trainer():
         'title': 'Cats & Dogs Classifier',
         'save_last': True,          # optional: Save last model (default=False)
         'save_best': True,          # optional: Save best models (ACC, {AUC}) (default=True)
+        'stable_metric: N           # optional: extend epochs number to wait N epochs with no metric change (ex.AUC)
         'save_checkpoints': N,      # Save checkpoint each N epochs
         'features': ['auc'],        # optional: features like auc stats or some scheduler (if none default:optim)
         'save_path': folder,        # if want to save artifacts in other place (eg.cloud)
@@ -62,6 +64,7 @@ class Trainer():
         self.epochs = int(config['num_epochs']) if 'num_epochs' in config else 10
         self.mini_batch = int(config['batch_size']) if 'batch_size' in config else 1
         self.first_epoch = int(config['start_epoch']) if 'start_epoch' in config else 1
+        self.stable_metric = int(config['stable_metric']) if 'stable_metric' in config else False
         self.name = config['name'] if 'name' in config else 'default'
         self.title = config['title'] if 'title' in config else 'Classifier'
         self.features = config['features'] if 'features' in config else []
@@ -211,7 +214,10 @@ class Trainer():
 
         device = self.device
 
-        for epoch in range(self.first_epoch, self.epochs+1):
+        # for epoch in range(self.first_epoch, self.epochs+1):
+        epoch = self.first_epoch        # suport for "wait N epochs after best metric"
+        last_epoch = self.epochs
+        while epoch <= last_epoch:
             self.model.train()
             train_loss, train_acc = 0.0, 0.0
             val_loss, val_acc = 0.0, 0.0
@@ -274,6 +280,10 @@ class Trainer():
 
             self.cb.after_epoch(self.model, train_acc, train_loss, val_acc, val_loss)
 
+            epoch += 1
+            last_epoch = self.epochs if not self.stable_metric else max(self.epochs, self.cb.best_metric_epoch + self.stable_metric)
+            # print('-', self.cb.best_metric_epoch, last_epoch)
+
         self.cb.after_train_val()
 
         return self.model
@@ -287,11 +297,14 @@ class Trainer():
             Input: test_dataloader
         """
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+        quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
 
         if model_type == 'normal':
             model = self.cb.last_model
         elif model_type == 'best':
             model = self.cb.best_model
+        elif model_type == 'bootstrap':
+            model = self.model
 
         test_acc, test_loss = 0., 0.
         batch_val_counter = 0
@@ -324,8 +337,9 @@ class Trainer():
         avg_test_loss = test_loss/batch_val_counter
         avg_test_acc = test_acc/batch_val_counter
 
-        print(f'Model: {model_type} - Test accuracy : {avg_test_acc:.3f}' +
-              f' Test loss : {avg_test_loss:.3f}')
+        if not quiet:
+            print(f'Model: {model_type} - Test accuracy : {avg_test_acc:.5f}' +
+                  f' Test loss : {avg_test_loss:.5f}')
 
         return avg_test_acc 
 
@@ -341,6 +355,7 @@ class Trainer():
         """
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
         model = kwargs.get('model') if kwargs.get('model') else None
+        show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
 
         if model is None:
             if model_type == 'normal':
@@ -348,6 +363,8 @@ class Trainer():
             elif model_type == 'best':
                 model = self.cb.best_model
             elif model_type == 'test':
+                model = self.model
+            elif model_type == 'bootstrap':
                 model = self.model
 
         test_acc, test_loss = 0., 0.
@@ -380,7 +397,7 @@ class Trainer():
                 y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
 
                 # enter show result mode
-                if self.mini_batch == 1:
+                if self.mini_batch == 1 and show_results:
                     print(f'{labels.item()}  {torch.softmax(outputs, dim=1)[:, 1].item():.3f}')
 
         # Find average test loss and test accuracy

@@ -2,6 +2,7 @@ import torch
 import datetime
 import time
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import average_precision_score, precision_recall_curve
 from sklearn.metrics import auc, roc_curve
@@ -55,11 +56,11 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     # Plot ROC curves
     #plt.figure()
     plt.plot(fpr["micro"], tpr["micro"],
-             label='ROC curve (area = {0:0.2f})'
-             ''.format(roc_auc["micro"]),
-             color='deeppink', linestyle=':', linewidth=4)
+             label='ROC curve (area = {0:0.4f})'
+             ''.format(np.round(roc_auc["micro"], 4)),
+             color='deeppink', linestyle=':', linewidth=2)
 
-    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.plot([0, 1], [0, 1], 'k--', lw=1)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
@@ -84,9 +85,9 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     plt.plot(precision, recall,
              label='Precision-Recall curve (area = {0:0.2f})'
              ''.format(avg_precision),
-             color='deeppink', linestyle=':', linewidth=4)
+             color='deeppink', linestyle=':', linewidth=2)
 
-    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.plot([0, 1], [0, 1], 'k--', lw=1)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('Recall')

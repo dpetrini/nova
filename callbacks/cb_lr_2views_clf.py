@@ -67,6 +67,6 @@ class LR_SchedCB_2views(Callbacks):
             if param.requires_grad is True:
                 # print("\t", name) #, '\t', param)
                 cont += 1
-        print('Updating {:3d} parameters.'.format(cont))
+        print('Updating {:3d} layers.'.format(cont))
 
         return optimizer

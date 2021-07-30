@@ -67,6 +67,19 @@ class CallbackHandler():
             cb.after_train_val()
         return True
 
+    @property
+    def best_metric_epoch(self):
+        """
+        If callback has best_metric_ep variable will update it to outside.
+        So that main trainer can change last epoch to some value after
+        training get stable (N epochs after last best_metric_epoch).
+        """
+        for cb in self.cbs:
+            if cb and hasattr(cb, 'best_metric_ep'):
+                _best_metric = cb.best_metric_ep
+                return _best_metric
+        return True
+
     # # Workaround para passar modelo
     @property
     def last_model(self):

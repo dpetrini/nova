@@ -84,6 +84,7 @@ class AUC_CB(Callbacks):
             self.best_model = copy.deepcopy(model)  # Will work
             self.best_auc = auc_malign_val
             self.best_auc_ep = self.n_epoch
+            self.best_metric_ep = self.n_epoch
         else: print()   # noop
 
         return True
@@ -106,7 +107,7 @@ class AUC_CB(Callbacks):
         print(result_auc)
 
         # save the model
-        if self.save_best:
+        if self.save_best and hasattr(self, 'best_model'):
             torch.save(self.best_model.state_dict(),
                     f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt')
             print(f'cb_auc: Best auc model saved in {self.models_dir}/')
@@ -127,6 +128,10 @@ class AUC_CB(Callbacks):
             plt.clf()
 
         return True
+
+    @property
+    def best_metric_epoch(self):
+        return self.best_metric_ep
 
     @property
     def best_auc_model(self):
