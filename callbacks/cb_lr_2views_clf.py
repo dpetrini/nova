@@ -52,14 +52,14 @@ class LR_SchedCB_2views(Callbacks):
 
 
             optimizer = optim.Adam(model.parameters(), lr=1e-5,
-                                   weight_decay=0.004 if use_wd else 0)
+                                   weight_decay=0.005 if use_wd else 0) # era 0.004 antes de v2
 
         if epoch >= ep_stage3:
             print('Fase 4: ', end='')
             for param in model.parameters():
                 param.requires_grad = True
             optimizer = optim.Adam(model.parameters(), lr=1e-5,
-                                   weight_decay=0.001 if use_wd else 0)
+                                   weight_decay=0.01 if use_wd else 0)   # era 0.001 antes de v2
 
         # Check # of parameters to be updated
         cont = 0
