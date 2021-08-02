@@ -25,7 +25,7 @@ class LR_SchedCB_2views(Callbacks):
             for n, param in enumerate(model.parameters()):
                 if n < layer_1: ## 173?? #185:     # APENAS FCs MID:209 (old:211)  MIDThin:185 TOP:185 (187-OLD)
                     param.requires_grad = False
-            optimizer = optim.Adam(model.parameters(), lr=1e-3)
+            optimizer = optim.Adam(model.parameters(), lr=1e-4)  # 1e-3 antes v2
 
         if epoch >= ep_stage1 and epoch < ep_stage2:
             print('Fase2: ', end='')
@@ -34,8 +34,8 @@ class LR_SchedCB_2views(Callbacks):
                     param.requires_grad = False
                 else:
                     param.requires_grad = True
-            optimizer = optim.Adam(model.parameters(), lr=1e-4, # MID:lr=1e-4 MIDThin:1e-3, Transfer:lr=1e-4 
-                                   weight_decay=0.005 if use_wd else 0)
+            optimizer = optim.Adam(model.parameters(), lr=1e-5, # MID:lr=1e-4 MIDThin:1e-3, Transfer:lr=1e-4   
+                                   weight_decay=0.005 if use_wd else 0)   # 1e-4 antes v2
 
         if epoch >= ep_stage2 and epoch < ep_stage3:
             print('Fase 3: ', end='')
