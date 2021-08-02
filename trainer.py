@@ -15,7 +15,7 @@ from callbacks.cb_lr_w_cos import LR_SchedCB_W_Cos
 from callbacks.cb_auc import AUC_CB
 
 # from parallel import DataParallelModel, DataParallelCriterion
-from util.util import show_auc
+from util.util import show_auc, calc_auc_desv
 
 parallel = False
 
@@ -356,6 +356,8 @@ class Trainer():
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
         model = kwargs.get('model') if kwargs.get('model') else None
         show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
+        m_positive = kwargs.get('m') if kwargs.get('m') else False
+        n_negative = kwargs.get('n') if kwargs.get('n') else False
 
         if model is None:
             if model_type == 'normal':
@@ -409,7 +411,12 @@ class Trainer():
 
         # calculate AUC TEST
         auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
-        print(f' AUC Malignant: {auc_mal_val:.4f}')
+        print(f' AUC Malignant: {auc_mal_val:.4f}', end='')
+        if m_positive and n_negative:
+            print(f' ± {calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
+        else:
+            print()
+
 
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)

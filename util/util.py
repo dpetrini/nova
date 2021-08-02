@@ -97,3 +97,18 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     plt.savefig('plot_test_auc/'+str(st)+'_Maligno_PR.png')
     if show_plt:
         plt.show()
+
+
+# Hanley and McNeil AUC std dev
+# m: positive samples, n: negative samples
+# auc: calculated value
+# returns : standard deviation
+def calc_auc_desv(m, n, auc):
+
+    Pxxy = auc / (2-auc)
+    Pxyy = 2*auc**2 / ((1+auc))
+
+    sigma_2 = (auc*(1-auc) + (m-1)*(Pxxy- auc**2) + (n-1)*(Pxyy - auc**2)) / (m*n)
+    sigma = np.sqrt(sigma_2)
+
+    return sigma
