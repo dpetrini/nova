@@ -413,7 +413,7 @@ class Trainer():
         auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
         print(f' AUC Malignant: {auc_mal_val:.4f}', end='')
         if m_positive and n_negative:
-            print(f' ± {calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
+            print(f'±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
         else:
             print()
 
