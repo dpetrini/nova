@@ -44,3 +44,21 @@ class Callbacks():
     
     def best_metric_epoch(self, *args):
         return True
+    
+    def best_metric(self, *args):
+        return True
+
+    def loss_plot(self, *args):
+        return True
+
+    def metric_plot(self, *args):
+        return True
+
+    def best_model_file(self, *args):
+        return True
+
+    def metric_name(self, *args):
+        return True
+
+    def elapsed_mins(self, *args):
+        return True

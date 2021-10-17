@@ -286,7 +286,11 @@ class Trainer():
 
         self.cb.after_train_val()
 
-        return self.model
+        values = [self.cb.best_metric, self.cb.best_metric_epoch, self.cb.elapsed_mins, 
+                  self.cb.metric_name, self.cb.loss_plot, self.cb.metric_plot, 
+                  self.cb.best_model_file]
+
+        return values
 
 
     def run_test(self, test_dataloader, model_type, **kwargs):

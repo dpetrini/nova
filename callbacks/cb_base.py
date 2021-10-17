@@ -56,6 +56,7 @@ class BaseCB(Callbacks):
 
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
+        self._metric_name = 'Accuracy'
 
     def __repr__(self):
         return 'BASE_Train'
@@ -114,7 +115,9 @@ class BaseCB(Callbacks):
             if self.save_best:
                 self._best_model = copy.deepcopy(model)  # Will work
             self.best_val_acc = avg_val_acc
-            self.best_val_acc_ep = self.n_epoch
+            self._best_val_acc_ep = self.n_epoch
+            self._best_metric_epoch = self.n_epoch
+            self._best_metric = avg_val_acc
         else: print()   # noop
 
         # save checkpoint
@@ -152,8 +155,8 @@ class BaseCB(Callbacks):
         return True
 
     def after_train_val(self):
-        elapsed_mins = (time.time()-self.start)/60
-        print('Total training time:  {:.2f} mins.'.format(elapsed_mins))
+        self._elapsed_mins = (time.time()-self.start)/60
+        print('Total training time:  {:.2f} mins.'.format(self._elapsed_mins))
         ts = time.time()
         n_samples = int((self.total_train_samples + self.total_val_samples)/self.epochs)
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
@@ -172,8 +175,9 @@ class BaseCB(Callbacks):
                        f'{self.models_dir}/{summary}_last_model{cv_sufix}.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
         if self.save_best:
+            self._best_model_file = f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}.pt'
             torch.save(self._best_model.state_dict(),
-                       f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}.pt')
+                       self._best_model_file)
             print(f'cb_base: Best acc model saved in {self.models_dir}/')
 
 
@@ -187,7 +191,8 @@ class BaseCB(Callbacks):
             plt.ylabel('Loss')
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            plt.savefig(f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}.png')
+            self._loss_plot = f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}.png'
+            plt.savefig(self._loss_plot)
             if self.show_plots:
                 plt.show()
             plt.clf()
@@ -200,12 +205,14 @@ class BaseCB(Callbacks):
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-            plt.savefig(f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png')
+            self._acc_plot = f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png'
+            plt.savefig(self._acc_plot)
             if self.show_plots:
                 plt.show()
             plt.clf()
 
         return True
+        # return self.best_val_acc, self.best_val_acc_ep, loss_plot, acc_plot, best_model_file
 
     # Workaround para passar modelo
     @property
@@ -215,3 +222,31 @@ class BaseCB(Callbacks):
     @property
     def best_model(self):
         return self._best_model
+
+    @property
+    def best_metric_epoch(self):
+        return self._best_metric_epoch
+
+    @property
+    def best_metric(self):
+        return self._best_metric
+
+    @property
+    def loss_plot(self):
+        return self._loss_plot
+
+    @property
+    def metric_plot(self):
+        return self._acc_plot
+
+    @property
+    def best_model_file(self):
+        return self._best_model_file
+
+    @property
+    def metric_name(self):
+        return self._metric_name
+
+    @property
+    def elapsed_mins(self):
+        return self._elapsed_mins

@@ -76,7 +76,7 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
 
     def after_train_val(self):
         pass
-        x_axis = range(1, self.epochs+1)
-        plt.plot(x_axis, self.res)
-        plt.legend(['Warm+Cyclic Cosine LR'], loc="upper right")
-        plt.show()
+        # x_axis = range(1, self.epochs+1)
+        # plt.plot(x_axis, self.res)
+        # plt.legend(['Warm+Cyclic Cosine LR'], loc="upper right")
+        # plt.show()

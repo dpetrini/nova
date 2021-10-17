@@ -84,7 +84,8 @@ class AUC_CB(Callbacks):
             self.best_model = copy.deepcopy(model)  # Will work
             self.best_auc = auc_malign_val
             self.best_auc_ep = self.n_epoch
-            self.best_metric_ep = self.n_epoch
+            self._best_metric_epoch = self.n_epoch
+            self._best_metric = auc_malign_val
         else: print()   # noop
 
         return True
@@ -131,7 +132,11 @@ class AUC_CB(Callbacks):
 
     @property
     def best_metric_epoch(self):
-        return self.best_metric_ep
+        return self._best_metric_epoch
+
+    @property
+    def best_metric(self):
+        return self._best_metric
 
     @property
     def best_auc_model(self):
