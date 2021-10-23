@@ -281,8 +281,13 @@ class Trainer():
             self.cb.after_epoch(self.model, train_acc, train_loss, val_acc, val_loss)
 
             epoch += 1
-            last_epoch = self.epochs if not self.stable_metric else max(self.epochs, self.cb.best_metric_epoch + self.stable_metric)
-            # print('-', self.cb.best_metric_epoch, last_epoch)
+            # print('-', self.cb.best_metric_epoch[self.cb.metric_name[-1]], last_epoch)
+            # Is use stable metric - will stop training earlier, after 
+            #  stable_metric epochs without validation metric (to be selected) improve
+            # last_epoch = self.epochs if not self.stable_metric else max(self.epochs, self.cb.best_metric_epoch[self.cb.metric_name[-1]] + self.stable_metric)
+            # for metric in self.cb.metric_name:
+            #     print(metric)
+            last_epoch = self.epochs if not self.stable_metric else min(self.epochs, self.cb.best_metric_epoch[self.cb.metric_name[-1]] + self.stable_metric)
 
         self.cb.after_train_val()
 
@@ -415,17 +420,21 @@ class Trainer():
 
         # calculate AUC TEST
         auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
-        print(f' AUC Malignant: {auc_mal_val:.4f}', end='')
+        # print(f' AUC Malignant: {auc_mal_val:.4f}', end='')
         if m_positive and n_negative:
-            print(f'±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
+            auc_final = f'{auc_mal_val:.4f}±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}'
+            # print(f'±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
+            print(f' AUC Malignant: {auc_final}')
         else:
-            print()
-
+            auc_final = f'{auc_mal_val:.4f}'
+            print(f' AUC Malignant: {auc_final}')
+            # print()
 
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
         
-        return auc_mal_val
+        # return auc_mal_val
+        return auc_final
 
 
     # Not fully tested yet (2021-05)

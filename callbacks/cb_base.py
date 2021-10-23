@@ -115,9 +115,9 @@ class BaseCB(Callbacks):
             if self.save_best:
                 self._best_model = copy.deepcopy(model)  # Will work
             self.best_val_acc = avg_val_acc
-            self._best_val_acc_ep = self.n_epoch
-            self._best_metric_epoch = self.n_epoch
-            self._best_metric = avg_val_acc
+            self.best_val_acc_ep = self.n_epoch
+            # self._best_metric_epoch = self.n_epoch
+            # self._best_metric = avg_val_acc
         else: print()   # noop
 
         # save checkpoint
@@ -165,7 +165,7 @@ class BaseCB(Callbacks):
         # Cross validation sufix, if configured
         cv_sufix = '_cv_'+str(self.cv_k) if self.cv_support else ''  # 2021-06-15
 
-        result_text = f"Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix}"
+        result_text = f'Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix}'
         acc_value = f'{self.best_val_acc:1.4f}'[-4:]
         print(result_text)
 
@@ -225,11 +225,11 @@ class BaseCB(Callbacks):
 
     @property
     def best_metric_epoch(self):
-        return self._best_metric_epoch
+        return self.best_val_acc_ep #_best_metric_epoch
 
     @property
     def best_metric(self):
-        return self._best_metric
+        return self.best_val_acc # _best_metric
 
     @property
     def loss_plot(self):

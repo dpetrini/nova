@@ -35,6 +35,7 @@ class AUC_CB(Callbacks):
         self.plots_dir = f'{self.save_path}plots_{name}'
         self.best_auc_ep = 0
         self.n_epoch = 0
+        self._metric_name = 'AUC'
 
     def __repr__(self):
         return 'AUC_Stats'
@@ -84,8 +85,8 @@ class AUC_CB(Callbacks):
             self.best_model = copy.deepcopy(model)  # Will work
             self.best_auc = auc_malign_val
             self.best_auc_ep = self.n_epoch
-            self._best_metric_epoch = self.n_epoch
-            self._best_metric = auc_malign_val
+            # self._best_metric_epoch = self.n_epoch
+            # self._best_metric = auc_malign_val
         else: print()   # noop
 
         return True
@@ -109,8 +110,9 @@ class AUC_CB(Callbacks):
 
         # save the model
         if self.save_best and hasattr(self, 'best_model'):
+            self._best_model_file = f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt'
             torch.save(self.best_model.state_dict(),
-                    f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt')
+                    self._best_model_file)
             print(f'cb_auc: Best auc model saved in {self.models_dir}/')
 
         if self.make_plots:
@@ -123,7 +125,8 @@ class AUC_CB(Callbacks):
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-            plt.savefig(f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png')
+            self._auc_plot = f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png'
+            plt.savefig(self._auc_plot)
             if self.show_plots:
                 plt.show()
             plt.clf()
@@ -132,12 +135,33 @@ class AUC_CB(Callbacks):
 
     @property
     def best_metric_epoch(self):
-        return self._best_metric_epoch
+        # print('AUC in ', self._best_metric_epoch)
+        return self.best_auc_ep #_best_metric_epoch
 
     @property
     def best_metric(self):
-        return self._best_metric
+        return self.best_auc #_best_metric
 
     @property
     def best_auc_model(self):
         return self.best_model
+
+    @property
+    def loss_plot(self):
+        return 'NA'
+
+    @property
+    def metric_plot(self):
+        return self._auc_plot
+
+    @property
+    def best_model_file(self):
+        return self._best_model_file
+
+    @property
+    def metric_name(self):
+        return self._metric_name
+
+    @property
+    def elapsed_mins(self):
+        return 0
