@@ -1,9 +1,8 @@
-from matplotlib.pyplot import show
+import numpy as np
 import torch
 from torch.autograd import Variable
 from torch.cuda.amp import GradScaler, autocast
-import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, confusion_matrix
 
 from callbacks.cb_handler import CallbackHandler
 from callbacks.cb_base import BaseCB
@@ -15,12 +14,9 @@ from callbacks.cb_lr_w_cos import LR_SchedCB_W_Cos
 from callbacks.cb_auc import AUC_CB
 
 # from parallel import DataParallelModel, DataParallelCriterion
-from util.util import show_auc, calc_auc_desv
+from util.util import show_auc, calc_auc_desv, plot_confusion_matrix2
 
 parallel = False
-
-#APAGAR
-import cv2
 
 # Accuracy
 def acc(y_hat, labels):
@@ -42,7 +38,8 @@ class Trainer():
         'name': 'example',
         'title': 'Cats & Dogs Classifier',
         'save_last': True,          # optional: Save last model (default=False)
-        'save_best': True,          # optional: Save best models (ACC, {AUC}) (default=True)
+        'save_best': True,          # optional: Save best models (ACC, {AUC}) (default=True) - need for AUC  & other
+        'save_best_acc': False,     # optional: Save best models Acc (default=False) -
         'stable_metric: N           # optional: extend epochs number to wait N epochs with no metric change (ex.AUC)
         'save_checkpoints': N,      # Save checkpoint each N epochs
         'features': ['auc'],        # optional: features like auc stats or some scheduler (if none default:optim)
@@ -204,6 +201,7 @@ class Trainer():
 
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
         input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
+        return_dict = kwargs.get('return_dict') if kwargs.get('return_dict') else False
 
         if not self.cb.begin_train_val(self.epochs, self.model, self.train_dataloader,
                                        self.val_dataloader, self.mini_batch, self.optimizer):
@@ -291,10 +289,16 @@ class Trainer():
 
         self.cb.after_train_val()
 
-        values = [self.cb.best_metric, self.cb.best_metric_epoch, self.cb.elapsed_mins, 
-                  self.cb.metric_name, self.cb.loss_plot, self.cb.metric_plot, 
-                  self.cb.best_model_file]
+        if return_dict:
+            values_dic = {'best_metric': self.cb.best_metric, 'best_metric_epoch': self.cb.best_metric_epoch,
+                          'elapsed_mins': self.cb.elapsed_mins, 'metric_name': self.cb.metric_name, 
+                          'loss_plot': self.cb.loss_plot, 'metric_plot': self.cb.metric_plot,
+                          'best_model_file': self.cb.best_model_file}
+            return values_dic
 
+        values = [self.cb.best_metric, self.cb.best_metric_epoch, self.cb.elapsed_mins, 
+                  self.cb.metric_name, self.cb.loss_plot, self.cb.metric_plot,
+                  self.cb.best_model_file]
         return values
 
 
@@ -350,7 +354,7 @@ class Trainer():
             print(f'Model: {model_type} - Test accuracy : {avg_test_acc:.5f}' +
                   f' Test loss : {avg_test_loss:.5f}')
 
-        return avg_test_acc 
+        return avg_test_acc
 
 
     def run_test_auc(self, test_dataloader, model_type, **kwargs):
@@ -367,6 +371,7 @@ class Trainer():
         show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
         m_positive = kwargs.get('m') if kwargs.get('m') else False
         n_negative = kwargs.get('n') if kwargs.get('n') else False
+        quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
 
         if model is None:
             if model_type == 'normal':
@@ -415,8 +420,9 @@ class Trainer():
         avg_test_loss = test_loss/batch_val_counter
         avg_test_acc = test_acc/batch_val_counter
 
-        print(f"Model: {model_type} - Test accuracy : {avg_test_acc:.3f}" +
-              f" Test loss : {avg_test_loss:.4f}", end='')
+        if not quiet:
+            print(f"Model: {model_type} - Test accuracy : {avg_test_acc:.3f}" +
+                f" Test loss : {avg_test_loss:.4f}", end='')
 
         # calculate AUC TEST
         auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
@@ -427,15 +433,84 @@ class Trainer():
             print(f' AUC Malignant: {auc_final}')
         else:
             auc_final = f'{auc_mal_val:.4f}'
-            print(f' AUC Malignant: {auc_final}')
+            if not quiet:
+                print(f' AUC Malignant: {auc_final}')
             # print()
 
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
-        
-        # return auc_mal_val
+
         return auc_final
 
+    def run_test_cm(self, test_dataloader, model_type, **kwargs):
+        """ Run test from test_dataloader, calculating CONFUSION MATRIX
+            labels: labels to plot
+            show_results: True if show plot (good for notebooks)
+            title: Used for file name
+            According to model_type:
+            if model_type = 'normal' : use last saved model
+            if model_type = 'best' : use best model
+            If we are running test iunference only can pass model through kwargs.
+            Uses: loss function from Trainer
+            Input: test_dataloader
+        """
+        calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+        model = kwargs.get('model') if kwargs.get('model') else None
+        show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
+        labels_text = kwargs.get('labels') if kwargs.get('labels') else None
+        title = kwargs.get('title') if kwargs.get('title') else None
+
+        if model is None:
+            if model_type == 'normal':
+                model = self.cb.last_model
+            elif model_type == 'best':
+                model = self.cb.best_model
+            elif model_type == 'test':
+                model = self.model
+            elif model_type == 'bootstrap':
+                model = self.model
+
+        test_acc, test_loss = 0., 0.
+        batch_val_counter = 0
+        y_hat_auc, label_auc = [], []
+        device = self.device
+
+        with torch.no_grad():
+            model.eval()
+
+            # validation loop
+            for _, (inputs, labels) in enumerate(test_dataloader):
+                if isinstance(inputs, dict):
+                    for key in ['CC', 'MLO']:
+                        inputs[key] = inputs[key].to(device)
+                    labels = Variable(labels.to(device))
+                else:
+                    inputs = Variable(inputs.to(device))
+                    labels = Variable(labels.to(device))
+                outputs = model(inputs)                         # forward pass
+                loss = self.loss_criterion(outputs, labels)     # compute loss
+                test_loss += loss.item() * labels.size(0)
+
+                # calculate acc
+                test_acc += calc_acc(outputs, labels).item()
+                batch_val_counter += labels.size(0)
+
+                # Store auc for malignant
+                label_auc = np.append(label_auc, labels.cpu().detach().numpy())
+                y_hat_auc = np.append(y_hat_auc, torch.argmax(outputs, dim=1).cpu().detach().numpy())
+
+        if labels is None:
+            print('Please provide labels for Confusion Matrix.')
+            return
+        else:
+            labels = labels_text
+        cm = confusion_matrix(label_auc.ravel(), y_hat_auc.ravel())
+        # print(label_auc.ravel().shape, y_hat_auc.ravel().shape)
+        # print((label_auc.ravel() == y_hat_auc.ravel()).sum())
+        # print(cm)
+        plot_confusion_matrix2(cm, labels_text, title=title, normalize=True, show_plt=show_results)
+
+        return
 
     # Not fully tested yet (2021-05)
     # it seems to be working - maybe integrate in single function as above

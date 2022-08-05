@@ -2,6 +2,7 @@ import torch
 import datetime
 import time
 import os
+import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import average_precision_score, precision_recall_curve
@@ -112,3 +113,47 @@ def calc_auc_desv(m, n, auc):
     sigma = np.sqrt(sigma_2)
 
     return sigma
+
+
+def plot_confusion_matrix2(cm, classes, normalize=False, title='Confusion matrix',
+                           cmap=plt.cm.Blues, dir_to_save='plot_cm/', show_plt=True):
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        # print("Normalized confusion matrix")
+    else:
+        # print('Confusion matrix, without normalization')
+        pass
+
+    if os.path.isdir(dir_to_save) is False:
+        os.makedirs(dir_to_save, exist_ok=False)
+
+    # get time for file naming
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
+
+
+    # print(cm)
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    # plt.title(title)
+    plt.title('Confusion Matrix')
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+        #plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color= "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.savefig(dir_to_save+str(st)+'_'+title+'_cm.png', bbox_inches='tight')
+    if show_plt:
+        plt.show()

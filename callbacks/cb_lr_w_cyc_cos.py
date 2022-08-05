@@ -78,5 +78,5 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
         pass
         # x_axis = range(1, self.epochs+1)
         # plt.plot(x_axis, self.res)
-        # plt.legend(['Warm+Cyclic Cosine LR'], loc="upper right")
+        # plt.legend(['Warm up + Cyclic Cosine LR'], loc="upper right")
         # plt.show()

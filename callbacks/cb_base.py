@@ -48,6 +48,7 @@ class BaseCB(Callbacks):
 
         self.save_last = config['save_last'] if 'save_last' in config else False
         self.save_best = config['save_best'] if 'save_best' in config else True
+        self.save_best_acc = config['save_best_acc'] if 'save_best_acc' in config else False
         self.save_checkpoints = config['save_checkpoints'] if 'save_checkpoints' in config else 0 # number of every X to save
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
@@ -174,7 +175,7 @@ class BaseCB(Callbacks):
             torch.save(self._model.state_dict(),
                        f'{self.models_dir}/{summary}_last_model{cv_sufix}.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
-        if self.save_best:
+        if self.save_best & self.save_best_acc:
             self._best_model_file = f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}.pt'
             torch.save(self._best_model.state_dict(),
                        self._best_model_file)
