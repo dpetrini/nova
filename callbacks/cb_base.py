@@ -16,6 +16,7 @@ import os
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
+import wandb
 
 from callbacks.cb import Callbacks    # base
 
@@ -54,6 +55,7 @@ class BaseCB(Callbacks):
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
         self.cv_support = True if 'cv_k' in config else False
+        self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
 
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
@@ -138,6 +140,10 @@ class BaseCB(Callbacks):
               .format(self.n_epoch, avg_train_loss, avg_train_acc*100,
                       avg_val_loss, avg_val_acc*100,
                       epoch_end-self.epoch_start))
+        
+        if self.use_wandb:
+            wandb.log({"acc": avg_val_acc*100, "loss": avg_val_loss}, commit=False) # coming here first than auc callback
+            wandb.watch(model)
 
         return True
 
@@ -194,7 +200,9 @@ class BaseCB(Callbacks):
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             self._loss_plot = f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}.png'
             plt.savefig(self._loss_plot)
-            if self.show_plots:
+            if self.use_wandb:
+                wandb.log({'img': [wandb.Image(plt)]})
+            if self.show_plots and not self.use_wandb:
                 plt.show()
             plt.clf()
 
@@ -208,7 +216,9 @@ class BaseCB(Callbacks):
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
             self._acc_plot = f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png'
             plt.savefig(self._acc_plot)
-            if self.show_plots:
+            if self.use_wandb:
+                wandb.log({'img': [wandb.Image(plt)]})
+            if self.show_plots and not self.use_wandb:
                 plt.show()
             plt.clf()
 

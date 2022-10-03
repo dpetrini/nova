@@ -3,6 +3,7 @@ import torch
 from torch.autograd import Variable
 from torch.cuda.amp import GradScaler, autocast
 from sklearn.metrics import roc_auc_score, confusion_matrix
+import wandb
 
 from callbacks.cb_handler import CallbackHandler
 from callbacks.cb_base import BaseCB
@@ -66,6 +67,7 @@ class Trainer():
         self.title = config['title'] if 'title' in config else 'Classifier'
         self.features = config['features'] if 'features' in config else []
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
+        self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
 
         if train_dataloader:
             self.train_dataloader = train_dataloader
@@ -437,6 +439,9 @@ class Trainer():
                 print(f' AUC Malignant: {auc_final}')
             # print()
 
+        if self.use_wandb:
+            wandb.summary['auc_test'] = auc_final
+
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
 
@@ -458,7 +463,7 @@ class Trainer():
         model = kwargs.get('model') if kwargs.get('model') else None
         show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
         labels_text = kwargs.get('labels') if kwargs.get('labels') else None
-        title = kwargs.get('title') if kwargs.get('title') else None
+        title = kwargs.get('title') if kwargs.get('title') else ''
 
         if model is None:
             if model_type == 'normal':
@@ -508,7 +513,15 @@ class Trainer():
         # print(label_auc.ravel().shape, y_hat_auc.ravel().shape)
         # print((label_auc.ravel() == y_hat_auc.ravel()).sum())
         # print(cm)
-        plot_confusion_matrix2(cm, labels_text, title=title, normalize=True, show_plt=show_results)
+        if self.make_plots:
+            plot_confusion_matrix2(cm, labels_text, title=title, normalize=True, show_plt=show_results)
+
+        if self.use_wandb:
+            cm = wandb.plot.confusion_matrix(
+                y_true=label_auc,
+                preds=y_hat_auc,
+                class_names=labels_text)
+            wandb.log({"conf_mat": cm})
 
         return
 

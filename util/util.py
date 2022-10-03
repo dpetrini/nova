@@ -138,8 +138,8 @@ def plot_confusion_matrix2(cm, classes, normalize=False, title='Confusion matrix
 
     # print(cm)
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    # plt.title(title)
-    plt.title('Confusion Matrix')
+    plt.title(title)
+    # plt.title('Confusion Matrix')
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)

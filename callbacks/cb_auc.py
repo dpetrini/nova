@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from sklearn.metrics import roc_auc_score
+import wandb
 
 
 from callbacks.cb import Callbacks    # base
@@ -24,6 +25,7 @@ class AUC_CB(Callbacks):
         self.save_best = config['save_best'] if 'save_best' in config else True
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
         self.cv_support = True if 'cv_k' in config else False
+        self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
 
         if 'save_path' in config:
             self.save_path = config['save_path']
@@ -55,7 +57,7 @@ class AUC_CB(Callbacks):
         self.label_auc = np.append(self.label_auc, labels.cpu().detach().numpy())
         self.y_hat_auc = np.append(self.y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
         # pegando soh malignant posicao [1] para comparar com label. ok.
-        #print(outputs, torch.softmax(outputs, dim=1), torch.softmax(outputs, dim=1)[0][1])
+        # print(outputs, torch.softmax(outputs, dim=1), torch.softmax(outputs, dim=1)[0][1])
 
         return True
 
@@ -69,12 +71,27 @@ class AUC_CB(Callbacks):
 
     def after_epoch(self, model, train_acc, train_loss, val_acc, val_loss, **kwargs):
 
+        auc_malign_train, auc_malign_val = 0, 0
+
         # calculate AUC Train
-        auc_malign_train = roc_auc_score(self.label_auc.ravel(),
-                                         self.y_hat_auc.ravel())
+        try:
+            auc_malign_train = roc_auc_score(self.label_auc.ravel(),
+                                            self.y_hat_auc.ravel())
+        except:
+            print('AUC Train calc error (possibly bad results): ')
+            print('Labels: ', self.label_auc.ravel())
+            with np.printoptions(threshold=np.inf, precision=2):
+                print('Outputs: ', self.y_hat_auc.ravel())
+
         # calculate AUC VAL
-        auc_malign_val = roc_auc_score(self.label_val_auc.ravel(),
-                                       self.y_hat_val_auc.ravel())
+        try:
+            auc_malign_val = roc_auc_score(self.label_val_auc.ravel(),
+                                        self.y_hat_val_auc.ravel())
+        except:
+            print('AUC Val calc error (possibly bad results): ')
+            print('Labels: ', self.label_auc.ravel())
+            with np.printoptions(threshold=np.inf, precision=2):
+                print('Outputs: ', self.y_hat_auc.ravel())
 
         print('[Train] AUC Malignant: %.3f' % auc_malign_train, end='')
         print(' [Val] AUC Val Malignant: %.3f' % auc_malign_val, end='')
@@ -88,6 +105,9 @@ class AUC_CB(Callbacks):
             # self._best_metric_epoch = self.n_epoch
             # self._best_metric = auc_malign_val
         else: print()   # noop
+
+        if self.use_wandb:
+            wandb.log({"auc_train": auc_malign_train, "auc_val": auc_malign_val})
 
         return True
 
@@ -108,6 +128,10 @@ class AUC_CB(Callbacks):
         auc_value = f'{self.best_auc:1.4f}'[-4:]
         print(result_auc)
 
+        if self.use_wandb:
+            wandb.summary['best_auc_val'] = self.best_auc
+            wandb.summary['best_auc_val_epoch'] = self.best_auc_ep
+
         # save the model
         if self.save_best and hasattr(self, 'best_model'):
             self._best_model_file = f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt'
@@ -127,7 +151,9 @@ class AUC_CB(Callbacks):
             plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
             self._auc_plot = f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png'
             plt.savefig(self._auc_plot)
-            if self.show_plots:
+            if self.use_wandb:
+                wandb.log({'img': [wandb.Image(plt)]})
+            if self.show_plots and not self.use_wandb:
                 plt.show()
             plt.clf()
 
