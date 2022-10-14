@@ -439,13 +439,39 @@ class Trainer():
                 print(f' AUC Malignant: {auc_final}')
             # print()
 
-        if self.use_wandb:
+        if self.use_wandb and model_type != 'bootstrap':
             wandb.summary['auc_test'] = auc_final
 
         if self.make_plots:
             show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
 
         return auc_final
+
+    def run_test_auc_fast(self, test_dataloader):
+        """ Run test from test_dataloader, calculating AUC
+            FASTER to run multiple times in bootstrap
+            If we are running test iunference only
+            Uses: test data loader
+            Input: test_dataloader
+        """
+        model = self.model
+        y_hat_auc, label_auc = [], []
+        device = self.device
+
+        with torch.no_grad():
+            model.eval()
+            # Test loop
+            for _, (inputs, labels) in enumerate(test_dataloader):
+                inputs = Variable(inputs.to(device))
+                labels = Variable(labels.to(device))
+                outputs = model(inputs)
+                # Store prediction for malignant (second class)
+                label_auc = np.append(label_auc, labels.cpu().detach().numpy())
+                y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
+
+        # calculate AUC TEST
+        return roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
+
 
     def run_test_cm(self, test_dataloader, model_type, **kwargs):
         """ Run test from test_dataloader, calculating CONFUSION MATRIX
