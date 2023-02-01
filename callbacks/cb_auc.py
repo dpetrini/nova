@@ -26,6 +26,7 @@ class AUC_CB(Callbacks):
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
         self.cv_support = True if 'cv_k' in config else False
         self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
+        self.name_sufix = '_'+config['name_sufix'] if 'name_sufix' in config else ''
 
         if 'save_path' in config:
             self.save_path = config['save_path']
@@ -134,7 +135,7 @@ class AUC_CB(Callbacks):
 
         # save the model
         if self.save_best and hasattr(self, 'best_model'):
-            self._best_model_file = f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}.pt'
+            self._best_model_file = f'{self.models_dir}/{summary}_best_model_AUC_0{auc_value}{cv_sufix}{self.name_sufix}.pt'
             torch.save(self.best_model.state_dict(),
                     self._best_model_file)
             print(f'cb_auc: Best auc model saved in {self.models_dir}/')
@@ -149,7 +150,7 @@ class AUC_CB(Callbacks):
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-            self._auc_plot = f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}.png'
+            self._auc_plot = f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}{self.name_sufix}.png'
             plt.savefig(self._auc_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})

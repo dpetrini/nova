@@ -34,6 +34,7 @@ class LR_SchedCB_W_Cos(Callbacks):
 
         self.base_lr = optim_args['base_lr'] if 'base_lr' in optim_args else self.base_lr
         self.warmup = optim_args['warmup'] if 'warmup' in optim_args else self.warmup
+        self.print = optim_args['print'] if 'print' in optim_args else False
 
         if epoch < 1: epoch = 1
 
@@ -65,9 +66,9 @@ class LR_SchedCB_W_Cos(Callbacks):
         pass
 
     def after_train_val(self):
-        pass
-        # x_axis = range(1, self.epochs+1)
-        # plt.plot(x_axis, self.res)
-        # plt.legend(['Warm+Cosine LR'], loc="upper right")
-        # # plt.savefig(f'./Warm+Cosine_LR.png')
-        # plt.show()
+        if self.print:
+            x_axis = range(1, self.epochs+1)
+            plt.plot(x_axis, self.res)
+            plt.legend(['Warm+Cosine LR'], loc="upper right")
+            # plt.savefig(f'./Warm+Cosine_LR.png')
+            plt.show()

@@ -49,13 +49,14 @@ class BaseCB(Callbacks):
 
         self.save_last = config['save_last'] if 'save_last' in config else False
         self.save_best = config['save_best'] if 'save_best' in config else True
-        self.save_best_acc = config['save_best_acc'] if 'save_best_acc' in config else False
+        #self.save_best_acc = config['save_best_acc'] if 'save_best_acc' in config else False # -> Obsolete
         self.save_checkpoints = config['save_checkpoints'] if 'save_checkpoints' in config else 0 # number of every X to save
         self.show_plots = config['show_plots'] if 'show_plots' in config else True
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.cv_k = config['cv_k'] if 'cv_k' in config else False
         self.cv_support = True if 'cv_k' in config else False
         self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
+        self.name_sufix = '_'+config['name_sufix'] if 'name_sufix' in config else ''
 
         self.best_val_acc = 0.05
         self.best_val_acc_ep = 0
@@ -63,6 +64,19 @@ class BaseCB(Callbacks):
 
     def __repr__(self):
         return 'BASE_Train'
+
+
+    # # function for saving checkpoints
+    # def save_checkpoint(epoch, model, optimizer, dir):
+    # # create a dictionary containing the model's state
+    # state = {
+    #     'epoch': epoch,
+    #     'model_state_dict': model.state_dict(),
+    #     'optimizer_state_dict': optimizer.state_dict()
+    # }
+    
+    # # save the state dictionary to a file
+    # torch.save(state, 'checkpoint.pth')
 
     def begin_train_val(self, epochs, model, train_dataloader, val_dataloader, bs_size, optimizer):
         super().begin_train_val(epochs)
@@ -172,7 +186,7 @@ class BaseCB(Callbacks):
         # Cross validation sufix, if configured
         cv_sufix = '_cv_'+str(self.cv_k) if self.cv_support else ''  # 2021-06-15
 
-        result_text = f'Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix}'
+        result_text = f'Best ACC: {self.best_val_acc:1.4f} (@ep {self.best_val_acc_ep}) {cv_sufix} {self.name_sufix}'
         acc_value = f'{self.best_val_acc:1.4f}'[-4:]
         print(result_text)
 
@@ -181,8 +195,8 @@ class BaseCB(Callbacks):
             torch.save(self._model.state_dict(),
                        f'{self.models_dir}/{summary}_last_model{cv_sufix}.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
-        if self.save_best & self.save_best_acc:
-            self._best_model_file = f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}.pt'
+        if self.save_best:          #    & self.save_best_acc: -> Obsolete
+            self._best_model_file = f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}{self.name_sufix}.pt'
             torch.save(self._best_model.state_dict(),
                        self._best_model_file)
             print(f'cb_base: Best acc model saved in {self.models_dir}/')
@@ -198,7 +212,7 @@ class BaseCB(Callbacks):
             plt.ylabel('Loss')
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            self._loss_plot = f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}.png'
+            self._loss_plot = f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}{self.name_sufix}.png'
             plt.savefig(self._loss_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})
@@ -214,7 +228,7 @@ class BaseCB(Callbacks):
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-            self._acc_plot = f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}.png'
+            self._acc_plot = f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}{self.name_sufix}.png'
             plt.savefig(self._acc_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})

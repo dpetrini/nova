@@ -29,7 +29,6 @@ def acc(y_hat, labels):
 
     return (torch.argmax(y_hat, dim=1) == labels).float().sum()
 
-
 class Trainer():
     """
     Many possible configurations for Trainer
@@ -48,6 +47,9 @@ class Trainer():
         'show_plots': False,        # if want to show plots
         'make_plots': False,        # if want to disable plots
         'cv_k': (number),           # interactio number if using Cross Validation
+        #'resume': False,            # resume training from saved checkpoint
+        'use_wandb': False,         # Save metrics & models in Wand DB
+        'name_sufix': '',           # Append sufix name in best model file name
     }
     """
 
@@ -68,6 +70,7 @@ class Trainer():
         self.features = config['features'] if 'features' in config else []
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
+        # self.resume = config['resume'] if 'resume' in config else False
 
         if train_dataloader:
             self.train_dataloader = train_dataloader
@@ -202,8 +205,9 @@ class Trainer():
         print('Using AMP')
 
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
-        input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
+        #input_dict = kwargs.get('input_dict') if kwargs.get('input_dict') else []
         return_dict = kwargs.get('return_dict') if kwargs.get('return_dict') else False
+        aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
         if not self.cb.begin_train_val(self.epochs, self.model, self.train_dataloader,
                                        self.val_dataloader, self.mini_batch, self.optimizer):
@@ -230,13 +234,16 @@ class Trainer():
             # Train loop
             for _, (inputs, labels) in enumerate(self.train_dataloader):
 
-                if isinstance(inputs, dict):
-                    for key in input_dict:
-                        inputs[key] = inputs[key].to(device)
-                else:
-                    inputs = Variable(inputs.to(device))
-
+                # if isinstance(inputs, dict):
+                #     for key in input_dict:
+                #         inputs[key] = inputs[key].to(device)
+                # else:
+                inputs = Variable(inputs.to(device))
+                
                 labels = Variable(labels.to(device))
+
+                if aug_func:
+                    inputs, labels = aug_func(inputs, labels, 'train')
 
                 self.optimizer.zero_grad()                       # clean existing gradients
                 # Runs the forward pass with autocasting.
@@ -261,13 +268,16 @@ class Trainer():
                 # validation loop
                 for _, (inputs, labels) in enumerate(self.val_dataloader):
 
-                    if isinstance(inputs, dict):
-                        for key in input_dict:
-                            inputs[key] = inputs[key].to(device)
-                    else:
-                        inputs = Variable(inputs.to(device))
+                    # if isinstance(inputs, dict):
+                    #     for key in input_dict:
+                    #         inputs[key] = inputs[key].to(device)
+                    # else:
+                    inputs = Variable(inputs.to(device))
 
                     labels = Variable(labels.to(device))
+
+                    if aug_func:
+                        inputs, labels = aug_func(inputs, labels, 'val')
 
                     outputs = self.model(inputs)                 # forward pass
                     loss = self.loss_criterion(outputs, labels)  # compute loss
@@ -313,12 +323,17 @@ class Trainer():
         """
         calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
         quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
+        aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
         if model_type == 'normal':
             model = self.cb.last_model
         elif model_type == 'best':
             model = self.cb.best_model
         elif model_type == 'bootstrap':
+            model = self.model
+        elif model_type == 'test':
+            model = self.model
+        else:
             model = self.model
 
         test_acc, test_loss = 0., 0.
@@ -338,7 +353,8 @@ class Trainer():
                 else:
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
-
+                if aug_func:
+                    inputs, labels = aug_func(inputs, labels, 'test')
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 if parallel:
@@ -374,6 +390,7 @@ class Trainer():
         m_positive = kwargs.get('m') if kwargs.get('m') else False
         n_negative = kwargs.get('n') if kwargs.get('n') else False
         quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
+        aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
         if model is None:
             if model_type == 'normal':
@@ -393,7 +410,7 @@ class Trainer():
         with torch.no_grad():
             model.eval()
 
-            # validation loop
+            # test loop
             for _, (inputs, labels) in enumerate(test_dataloader):
                 if isinstance(inputs, dict):
                     for key in ['CC', 'MLO']:
@@ -402,6 +419,8 @@ class Trainer():
                 else:
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
+                if aug_func:
+                    inputs, labels = aug_func(inputs, labels, 'test')
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 test_loss += loss.item() * labels.size(0)
@@ -447,7 +466,7 @@ class Trainer():
 
         return auc_final
 
-    def run_test_auc_fast(self, test_dataloader):
+    def run_test_auc_fast(self, test_dataloader, aug_func):
         """ Run test from test_dataloader, calculating AUC
             FASTER to run multiple times in bootstrap
             If we are running test iunference only
@@ -464,6 +483,8 @@ class Trainer():
             for _, (inputs, labels) in enumerate(test_dataloader):
                 inputs = Variable(inputs.to(device))
                 labels = Variable(labels.to(device))
+                if aug_func:
+                    inputs, labels = aug_func(inputs, labels, 'test')
                 outputs = model(inputs)
                 # Store prediction for malignant (second class)
                 label_auc = np.append(label_auc, labels.cpu().detach().numpy())
@@ -490,6 +511,7 @@ class Trainer():
         show_results = kwargs.get('show_results') if kwargs.get('show_results') else False
         labels_text = kwargs.get('labels') if kwargs.get('labels') else None
         title = kwargs.get('title') if kwargs.get('title') else ''
+        aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
         if model is None:
             if model_type == 'normal':
@@ -518,6 +540,8 @@ class Trainer():
                 else:
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
+                if aug_func:
+                    inputs, labels = aug_func(inputs, labels, 'test')
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 test_loss += loss.item() * labels.size(0)

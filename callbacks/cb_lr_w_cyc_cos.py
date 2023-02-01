@@ -38,6 +38,8 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
         self.delta = optim_args['delta'] if 'delta' in optim_args else 1e-4
         self.T = optim_args['period'] if 'period' in optim_args else 20
         self.warmup = optim_args['warmup'] if 'warmup' in optim_args else 5
+        self.print = optim_args['print'] if 'print' in optim_args else False
+        self.adamw = optim_args['AdamW'] if 'AdamW' in optim_args else False
 
 # def lr_cos(epoch, T, delta, lr_base):
 #     n = 1/2*(delta)*(1+math.cos(epoch*math.pi/T)) + lr_base
@@ -56,7 +58,10 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
             # self.next_lr = 1/2*(1+math.cos((epoch-self.warmup)*math.pi/(self.epochs-self.warmup)))*self.base_lr
             self.next_lr = 1/2*(self.delta)*(1+math.cos((epoch-self.warmup)*math.pi/self.T)) + self.base_lr - self.delta/2
 
-        optimizer = optim.Adam(model.parameters(), lr=self.next_lr)
+        if self.adamw:
+            optimizer = optim.AdamW(model.parameters(), lr=self.next_lr)
+        else:
+            optimizer = optim.Adam(model.parameters(), lr=self.next_lr)
         self.res.append(self.next_lr)
 
         # Check # of parameters to be updated
@@ -64,7 +69,7 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
         for name, param in model.named_parameters():
             if param.requires_grad is True:
                 cont += 1
-        print(f'Updating {cont:3d} parameters ', end='')
+        print(f'Updating {cont:3d} layers ', end='')
 
         for param_group in optimizer.param_groups:
             print(f"current learning rate is: {param_group['lr']:1.2e}")
@@ -75,8 +80,8 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
         pass
 
     def after_train_val(self):
-        pass
-        # x_axis = range(1, self.epochs+1)
-        # plt.plot(x_axis, self.res)
-        # plt.legend(['Warm up + Cyclic Cosine LR'], loc="upper right")
-        # plt.show()
+        if self.print:
+            x_axis = range(1, self.epochs+1)
+            plt.plot(x_axis, self.res)
+            plt.legend(['Warm up + Cyclic Cosine LR'], loc="upper right")
+            plt.show()
