@@ -1,3 +1,5 @@
+.flake8
+
 data_cats_dogs/*
 
 models_example/*

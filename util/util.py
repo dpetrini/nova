@@ -106,6 +106,9 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
 # returns : standard deviation
 def calc_auc_desv(m, n, auc):
 
+    if auc == 0:
+        return 0
+
     Pxxy = auc / (2-auc)
     Pxyy = 2*auc**2 / ((1+auc))
 

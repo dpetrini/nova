@@ -23,9 +23,9 @@ parallel = False
 def acc(y_hat, labels):
     """ Default accuracy """
 
-    # para parallel
-    if len(y_hat) > 1 and parallel:
-        y_hat = torch.cat(y_hat)
+    # # para parallel
+    # if len(y_hat) > 1 and parallel:
+    #     y_hat = torch.cat(y_hat)
 
     return (torch.argmax(y_hat, dim=1) == labels).float().sum()
 
@@ -198,6 +198,7 @@ class Trainer():
         Uses FP16 and FP32 in main loop with pytorch Automatic Mixed Precision.
         In simple tests: use 75% of memory in 66% of time. Less memory and faster.
         Sometimes it just don't work and get worse, like for resnest...
+        Function optimized for performances in many ways.
         """
 
         assert torch.__version__ >= '1.6.0', "[Mixed precision] Please use PyTorch 1.6.0+"
@@ -223,8 +224,13 @@ class Trainer():
         last_epoch = self.epochs
         while epoch <= last_epoch:
             self.model.train()
-            train_loss, train_acc = 0.0, 0.0
-            val_loss, val_acc = 0.0, 0.0
+            # train_loss, train_acc = 0.0, 0.0
+            train_loss = torch.tensor(0.0, device=torch.device('cuda:0'), requires_grad=False)
+            train_acc = torch.tensor(0.0, device=torch.device('cuda:0'), requires_grad=False)
+            bs_size = torch.tensor(self.mini_batch, device=torch.device('cuda:0'), requires_grad=False)
+            # val_loss, val_acc = 0.0, 0.0
+            val_loss = torch.tensor(0.0, device=torch.device('cuda:0'), requires_grad=False)
+            val_acc = torch.tensor(0.0, device=torch.device('cuda:0'), requires_grad=False)
 
             if not self.cb.begin_epoch(epoch): return  # noqa: E701
 
@@ -234,18 +240,31 @@ class Trainer():
             # Train loop
             for _, (inputs, labels) in enumerate(self.train_dataloader):
 
-                # if isinstance(inputs, dict):
-                #     for key in input_dict:
-                #         inputs[key] = inputs[key].to(device)
-                # else:
-                inputs = Variable(inputs.to(device))
-                
-                labels = Variable(labels.to(device))
+                # inputs = inputs.to(device)
+                # labels = labels.to(device)
+
+                # check performance - 1
+                inputs = inputs.to(device, non_blocking=True)
+                labels = labels.to(device, non_blocking=True)
+
+
+                # print(inputs.mean().item(), inputs.std().item())
+                # print('A ', inputs.shape, inputs[0].mean().item(), inputs[0].std().item(), labels[0].item(), inputs[0])
 
                 if aug_func:
-                    inputs, labels = aug_func(inputs, labels, 'train')
+                    # inputs, labels = aug_func(inputs, labels, 'train')
+                    inputs = aug_func(inputs)  # .to(device)
+                
+                # print(inputs.mean().item(), inputs.std().item())
+                # for i in range(len(inputs)):
+                #     print(i, inputs[i].mean().item(), inputs[i].std().item())
+                #print('B ', inputs.shape, inputs[0].mean().item(), inputs[0].std().item(), labels[0].item(),  inputs[0])
 
-                self.optimizer.zero_grad()                       # clean existing gradients
+                # self.optimizer.zero_grad() 
+
+                # check performance - 2
+                self.optimizer.zero_grad(set_to_none=True)                       # clean existing gradients
+
                 # Runs the forward pass with autocasting.
                 with autocast():
                     outputs = self.model(inputs)                 # forward pass
@@ -256,10 +275,21 @@ class Trainer():
                 scaler.step(self.optimizer)     # update parameters
                 scaler.update()                 # Updates the scale for next iteration.
 
-                train_loss += loss.item() * labels.size(0)           # == mini_batch size
-                train_acc += calc_acc(outputs, labels).item()
 
-                self.cb.after_step(labels.size(0), labels, outputs)
+                # evitar uso de item(), que força sincronismo com CPU: TODO
+                # check performance - 3
+                # train_loss += loss.item() * labels.size(0)           # == mini_batch size
+                train_loss += loss.data * bs_size           # == mini_batch size
+
+                # print(train_loss, loss.item(), loss, labels.size(0), bs_size)
+
+                # check performance - 4
+                # train_acc += calc_acc(outputs, labels).item()
+                train_acc += calc_acc(outputs, labels).data
+
+                # check performance - 5
+                # self.cb.after_step(labels.size(0), labels, outputs)
+                self.cb.after_step(bs_size, labels, outputs)
 
             # validation - no gradient tracking needed
             with torch.no_grad():
@@ -268,23 +298,25 @@ class Trainer():
                 # validation loop
                 for _, (inputs, labels) in enumerate(self.val_dataloader):
 
-                    # if isinstance(inputs, dict):
-                    #     for key in input_dict:
-                    #         inputs[key] = inputs[key].to(device)
-                    # else:
-                    inputs = Variable(inputs.to(device))
+                    # inputs = inputs.to(device)
+                    # labels = labels.to(device)
 
-                    labels = Variable(labels.to(device))
+                    # check performance - 3
+                    inputs = inputs.to(device, non_blocking=True)
+                    labels = labels.to(device, non_blocking=True)               
 
                     if aug_func:
-                        inputs, labels = aug_func(inputs, labels, 'val')
+                        # inputs, labels = aug_func(inputs, labels, 'val')
+                        inputs = aug_func(inputs)
 
                     outputs = self.model(inputs)                 # forward pass
                     loss = self.loss_criterion(outputs, labels)  # compute loss
                     if parallel:
                         loss = loss.mean()
-                    val_loss += loss.item() * labels.size(0)     # == mini_batch size
-                    val_acc += calc_acc(outputs, labels).item()
+                    # val_loss += loss.item() * labels.size(0)     # == mini_batch size
+                    val_loss += loss.data * labels.size(0)     # == mini_batch size may be different from train
+                    # val_acc += calc_acc(outputs, labels).item()
+                    val_acc += calc_acc(outputs, labels).data
 
                     self.cb.after_step_val(labels.size(0), labels, outputs)
 
@@ -312,7 +344,6 @@ class Trainer():
                   self.cb.metric_name, self.cb.loss_plot, self.cb.metric_plot,
                   self.cb.best_model_file]
         return values
-
 
     def run_test(self, test_dataloader, model_type, **kwargs):
         """ Run test from test_dataloader according to model_type.
@@ -354,7 +385,9 @@ class Trainer():
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
                 if aug_func:
-                    inputs, labels = aug_func(inputs, labels, 'test')
+                    # inputs, labels = aug_func(inputs, labels, 'test')
+                    inputs = aug_func(inputs)
+
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 if parallel:
@@ -392,6 +425,10 @@ class Trainer():
         quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
         aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
+        if self.cb.best_metric['AUC'] == 0.3:     # Default Auc, no update
+            print('Wrong values for AUC test returning zero...')
+            return 0                    # possibly only errors return 0
+
         if model is None:
             if model_type == 'normal':
                 model = self.cb.last_model
@@ -420,7 +457,9 @@ class Trainer():
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
                 if aug_func:
-                    inputs, labels = aug_func(inputs, labels, 'test')
+                    # inputs, labels = aug_func(inputs, labels, 'test')
+                    inputs = aug_func(inputs)
+
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 test_loss += loss.item() * labels.size(0)
@@ -446,8 +485,12 @@ class Trainer():
                 f" Test loss : {avg_test_loss:.4f}", end='')
 
         # calculate AUC TEST
-        auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
-        # print(f' AUC Malignant: {auc_mal_val:.4f}', end='')
+        try:
+            auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
+        except:
+            auc_mal_val = 0
+            print('Bad AUC, probably bad auc values during training... skip it!')
+
         if m_positive and n_negative:
             auc_final = f'{auc_mal_val:.4f}±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}'
             # print(f'±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
@@ -541,7 +584,9 @@ class Trainer():
                     inputs = Variable(inputs.to(device))
                     labels = Variable(labels.to(device))
                 if aug_func:
-                    inputs, labels = aug_func(inputs, labels, 'test')
+                    # inputs, labels = aug_func(inputs, labels, 'test')
+                    inputs = aug_func(inputs)
+                    
                 outputs = model(inputs)                         # forward pass
                 loss = self.loss_criterion(outputs, labels)     # compute loss
                 test_loss += loss.item() * labels.size(0)

@@ -92,7 +92,7 @@ class BaseCB(Callbacks):
             self.bar_step = train_step // 50
         self.bar_step_val = val_step // 10 if val_step >= 10 else 1
         #self.bar_step_val = self.bar_step #// 4 if val_step >= 1 else 1
-        print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}, bar_step:{self.bar_step} bar_step_val:{self.bar_step_val}')
+        #print(f'Fix progress: train_step: {train_step} val_step: {val_step}, bsize: {bs_size}, bar_step:{self.bar_step} bar_step_val:{self.bar_step_val}')
         self.total_train_samples, self.total_val_samples = 0, 0
         self.n_epoch = 0
         self.history = []
@@ -204,7 +204,11 @@ class BaseCB(Callbacks):
 
         # plots
         if self.make_plots:
-            history = np.array(self.history)
+            # history = np.array(self.history)
+            # print(self.history)
+            # Convert from gpu torch tensors
+            history = np.array([[i.item() for i in j] for j in self.history])
+            #history = self.history.numpy()
             plt.plot(history[:, 0:2])
             plt.title(self.title+" - Loss")
             plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")

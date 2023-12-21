@@ -23,6 +23,9 @@ class LR_SchedCB_full(Callbacks):
         ep_stage1 = optim_args['stages']
         parameter_stage1 = optim_args['param_stage1']
         use_wd = optim_args['use_wd'] if optim_args['use_wd'] else False
+        self.adamw = optim_args['AdamW'] if 'AdamW' in optim_args else False
+
+        # print('Params: ', epoch, ep_stage1, parameter_stage1)
 
         # set differnt LR for different trainable layers and epoch
         if epoch < ep_stage1:
@@ -31,8 +34,12 @@ class LR_SchedCB_full(Callbacks):
             for n, param in enumerate(model.parameters()):
                 if n < parameter_stage1:    # 161:Resnet50,  261:ResNest50
                     param.requires_grad = False
-            optimizer = optim.Adam(model.parameters(), lr=1e-4,
-                                   weight_decay=0.001 if use_wd else 0)
+            if self.adamw:
+                optimizer = optim.AdamW(model.parameters(), lr=1e-4,
+                                        weight_decay=0.001 if use_wd else 0)
+            else:
+                optimizer = optim.Adam(model.parameters(), lr=1e-4,
+                                       weight_decay=0.001 if use_wd else 0)
 
         if epoch >= ep_stage1:  # and epoch < ep_stage2:
             print('Fase 2: ', end='')
@@ -41,8 +48,12 @@ class LR_SchedCB_full(Callbacks):
                 #         param.requires_grad = False
                 #     else:
                 param.requires_grad = True
-            optimizer = optim.Adam(model.parameters(), lr=1e-5,
-                                   weight_decay=0.01 if use_wd else 0)
+            if self.adamw:
+                optimizer = optim.AdamW(model.parameters(), lr=1e-5,
+                                        weight_decay=0.01 if use_wd else 0)
+            else:
+                optimizer = optim.Adam(model.parameters(), lr=1e-5,
+                                       weight_decay=0.01 if use_wd else 0)
 
         # Check # of parameters to be updated
         cont = 0
@@ -51,3 +62,5 @@ class LR_SchedCB_full(Callbacks):
             if param.requires_grad is True:
                 cont += 1
         print(f'Updating {cont:3d} layers.')
+
+        return optimizer
