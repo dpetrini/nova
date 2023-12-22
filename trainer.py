@@ -334,13 +334,13 @@ class Trainer():
         self.cb.after_train_val()
 
         if return_dict:
-            values_dic = {'best_metric': self.cb.best_metric, 'best_metric_epoch': self.cb.best_metric_epoch,
+            values_dic = {'best_metric': self.cb.best_metric.cpu().detach().numpy(), 'best_metric_epoch': self.cb.best_metric_epoch,
                           'elapsed_mins': self.cb.elapsed_mins, 'metric_name': self.cb.metric_name, 
                           'loss_plot': self.cb.loss_plot, 'metric_plot': self.cb.metric_plot,
                           'best_model_file': self.cb.best_model_file}
             return values_dic
 
-        values = [self.cb.best_metric, self.cb.best_metric_epoch, self.cb.elapsed_mins, 
+        values = [self.cb.best_metric.cpu().detach().numpy(), self.cb.best_metric_epoch, self.cb.elapsed_mins, 
                   self.cb.metric_name, self.cb.loss_plot, self.cb.metric_plot,
                   self.cb.best_model_file]
         return values
