@@ -119,7 +119,8 @@ def calc_auc_desv(m, n, auc):
 
 
 def plot_confusion_matrix2(cm, classes, normalize=False, title='Confusion matrix',
-                           cmap=plt.cm.Blues, dir_to_save='plot_cm/', show_plt=True):
+                           cmap=plt.cm.Blues, dir_to_save='plot_cm/', show_plt=True, 
+                           lang='English'):
 
     accuracy = np.trace(cm) / float(np.sum(cm))
     misclass = 1 - accuracy
@@ -155,8 +156,11 @@ def plot_confusion_matrix2(cm, classes, normalize=False, title='Confusion matrix
         #plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color= "black")
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.ylabel('True label') if lang=='English' else plt.ylabel('Classe real')
+    if lang=='English':
+        plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    else:
+        plt.xlabel('Classe predita\nAcurácia={:0.4f}; Erro={:0.4f}'.format(accuracy, misclass))
     plt.savefig(dir_to_save+str(st)+'_'+title+'_cm.png', bbox_inches='tight')
     if show_plt:
         plt.show()
