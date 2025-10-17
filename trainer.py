@@ -408,6 +408,69 @@ class Trainer():
         return avg_test_acc
 
 
+    def run_test_clf(self, test_dataloader, model_type, **kwargs):
+        """ Run test from test_dataloader according to model_type.
+            if model_type = 'normal' : use last saved model
+            if model_type = 'best' : use best model
+            Uses: loss function from Trainer
+            Input: test_dataloader
+        """
+        calc_acc = kwargs.get('accuracy') if kwargs.get('accuracy') else acc
+        quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
+
+        if model_type == 'normal':
+            model = self.cb.last_model
+        elif model_type == 'best':
+            model = self.cb.best_model
+        elif model_type == 'bootstrap':
+            model = self.model
+
+        test_acc, test_loss = 0., 0.
+        batch_val_counter = 0
+        device = self.device
+
+        y_hat_auc, label_auc = np.array([]), np.array([])
+
+        with torch.no_grad():
+            model.eval()
+
+            # validation loop
+            for _, (inputs, labels) in enumerate(test_dataloader):
+
+                #labels = labels.squeeze()
+
+                if isinstance(inputs, dict):
+                    for key in ['CC', 'MLO']:
+                        inputs[key] = inputs[key].to(device)
+                    labels = Variable(labels.to(device))
+                else:
+                    inputs = Variable(inputs.to(device))
+                    labels = Variable(labels.to(device))
+
+                outputs = model(inputs)                         # forward pass
+                loss = self.loss_criterion(outputs, labels)     # compute loss
+                if parallel:
+                    loss = loss.mean()
+                test_loss += loss.item() * labels.size(0)
+                test_acc += calc_acc(outputs, labels).item()
+
+                batch_val_counter += labels.size(0)
+
+                label_auc = np.append(label_auc, labels.cpu().detach().numpy())
+                y_hat_auc = np.append(y_hat_auc, torch.argmax(outputs, dim=1).cpu().detach().numpy())
+
+
+        # Find average test loss and test accuracy
+        avg_test_loss = test_loss/batch_val_counter
+        avg_test_acc = test_acc/batch_val_counter
+
+        if not quiet:
+            print(f'Model: {model_type} - Test accuracy : {avg_test_acc:.5f}' +
+                  f' Test loss : {avg_test_loss:.5f}')
+
+        return avg_test_acc, y_hat_auc, label_auc
+
+
     def run_test_auc(self, test_dataloader, model_type, **kwargs):
         """ Run test from test_dataloader, calculating AUC and ROC curve
             According to model_type:
