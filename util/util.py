@@ -33,7 +33,7 @@ def load_checkpoint(optimizer, model, filename):
     return epoch, acc  # , best_model
 
 
-def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
+def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, show_plt=True):
     """Plots AUC and Precision-Recall Curves
     Input: labels and inference outputs as np arrays
     Output: plots on screen and saved in plot_test_auc folder """
@@ -42,8 +42,13 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
 
-    if os.path.isdir('plot_test_auc/') is False:
-        os.makedirs('plot_test_auc/', exist_ok=False)
+    if not save_path.endswith('/'):
+        save_path += '/'
+
+    plots_dir = save_path
+
+    if os.path.isdir(plots_dir) is False:
+        os.makedirs(plots_dir, exist_ok=False)
 
     # #### Compute ROC curve and ROC area for each class MALIGN
     fpr = dict()
@@ -55,25 +60,27 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
     # Plot ROC curves
-    #plt.figure()
     plt.plot(fpr["micro"], tpr["micro"],
              label='ROC curve (area = {0:0.4f})'
              ''.format(np.round(roc_auc["micro"], 4)),
              color='deeppink', linestyle=':', linewidth=2)
+
+    auc_value = f'{np.round(roc_auc["micro"], 4):1.4f}'[-4:]
+    auc_file = plots_dir+str(st)+'_AUC_ROC_test_0' + auc_value + '.png'
 
     plt.plot([0, 1], [0, 1], 'k--', lw=1)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(title+' - ROC Curve')
+    plt.title('[ROC Curve] '+ title)
     plt.legend(loc="lower right")
-    plt.savefig('plot_test_auc/'+str(st)+'_Category_1_ROC.png')
+    plt.savefig(auc_file)
     if show_plt:
         plt.show()
 
     if not pr:
-        return
+        return auc_file
 
     # Precision/recal curve - Malign
     precision, recall, _ = precision_recall_curve(label_auc.ravel(),
@@ -95,7 +102,7 @@ def show_auc(label_auc, y_hat_auc, title, pr=False, show_plt=True):
     plt.ylabel('Precision')
     plt.title(title)
     plt.legend(loc="lower right")
-    plt.savefig('plot_test_auc/'+str(st)+'_Maligno_PR.png')
+    plt.savefig(plots_dir+str(st)+'_Maligno_PR.png')
     if show_plt:
         plt.show()
 

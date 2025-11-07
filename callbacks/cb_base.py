@@ -204,19 +204,16 @@ class BaseCB(Callbacks):
 
         # plots
         if self.make_plots:
-            # history = np.array(self.history)
-            # print(self.history)
             # Convert from gpu torch tensors
             history = np.array([[i.item() for i in j] for j in self.history])
-            #history = self.history.numpy()
             plt.plot(history[:, 0:2])
-            plt.title(self.title+" - Loss")
-            plt.legend(['Tr Loss', 'Val Loss'], loc="upper right")
+            plt.title('[Loss train] '+self.title)
+            plt.legend(['Train Loss', 'Val Loss'], loc="upper right")
             plt.xlabel('Epoch Number')
             plt.ylabel('Loss')
             plt.ylim(0, 3)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
-            self._loss_plot = f'{self.plots_dir}/{st}_loss_curve_ACC_0{acc_value}{cv_sufix}{self.name_sufix}.png'
+            self._loss_plot = f'{self.plots_dir}/{st}_loss_train_0{acc_value}{cv_sufix}{self.name_sufix}.png'
             plt.savefig(self._loss_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})
@@ -225,14 +222,14 @@ class BaseCB(Callbacks):
             plt.clf()
 
             plt.plot(history[:, 2:4])
-            plt.title(self.title+' - '+result_text)
-            plt.legend(['Tr Accuracy', 'Val Accuracy'], loc="lower right")
+            plt.title('[Acc train] '+self.title)
+            plt.legend(['Train Accuracy', 'Val Accuracy'], loc="lower right")
             plt.xlabel('Epoch Number')
             plt.ylabel('Accuracy')
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.9, result_text, bbox=dict(facecolor='red', alpha=0.3))
-            self._acc_plot = f'{self.plots_dir}/{st}_acc_curve_ACC_0{acc_value}{cv_sufix}{self.name_sufix}.png'
+            self._acc_plot = f'{self.plots_dir}/{st}_acc_train_0{acc_value}{cv_sufix}{self.name_sufix}.png'
             plt.savefig(self._acc_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})

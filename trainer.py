@@ -70,7 +70,7 @@ class Trainer():
         self.features = config['features'] if 'features' in config else []
         self.make_plots = config['make_plots'] if 'make_plots' in config else True
         self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
-        # self.resume = config['resume'] if 'resume' in config else False
+        self.save_path = config['save_path'] if 'save_path' in config else './'
 
         if train_dataloader:
             self.train_dataloader = train_dataloader
@@ -567,10 +567,13 @@ class Trainer():
         if self.use_wandb and model_type != 'bootstrap':
             wandb.summary['auc_test'] = auc_final
 
+        auc_file = ''
         if self.make_plots:
-            show_auc(label_auc, y_hat_auc, self.title, show_plt=False)
+            auc_file = show_auc(label_auc, y_hat_auc, self.title, 
+                                f'{self.save_path}plots_{self.name}',
+                                show_plt=False)
 
-        return auc_final
+        return auc_final, auc_file
 
     def run_test_auc_fast(self, test_dataloader, aug_func):
         """ Run test from test_dataloader, calculating AUC

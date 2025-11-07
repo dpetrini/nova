@@ -27,6 +27,7 @@ class AUC_CB(Callbacks):
         self.cv_support = True if 'cv_k' in config else False
         self.use_wandb = config['use_wandb'] if 'use_wandb' in config else False
         self.name_sufix = '_'+config['name_sufix'] if 'name_sufix' in config else ''
+        self.title = config['title'] if 'title' in config else 'Classifier'
 
         if 'save_path' in config:
             self.save_path = config['save_path']
@@ -143,14 +144,14 @@ class AUC_CB(Callbacks):
         if self.make_plots:
             history = np.array(self.history)
             plt.plot(history[:, 0:2])
-            plt.title(f'AUC - Classifier {self.name} {result_auc}')
+            plt.title('[AUC train] '+self.title)
             plt.legend(['Train AUC', 'Val AUC'], loc="lower right")
             plt.xlabel('Epoch Number')
             plt.ylabel('Area Under Curve')
             plt.ylim(0, 1)
             plt.grid(True, ls=':', lw=.5, c='k', alpha=.3)
             plt.text(0, 0.95, result_auc, bbox=dict(facecolor='red', alpha=0.3))
-            self._auc_plot = f'{self.plots_dir}/{st}_AUC_curve_AUC_0{auc_value}{self.name_sufix}.png'
+            self._auc_plot = f'{self.plots_dir}/{st}_AUC_train_0{auc_value}{self.name_sufix}.png'
             plt.savefig(self._auc_plot)
             if self.use_wandb:
                 wandb.log({'img': [wandb.Image(plt)]})
