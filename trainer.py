@@ -1,9 +1,10 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from torch.cuda.amp import GradScaler, autocast
+#from torch.cuda.amp import GradScaler #, autocast
 from sklearn.metrics import roc_auc_score, confusion_matrix
 import wandb
+import pandas as pd
 
 from callbacks.cb_handler import CallbackHandler
 from callbacks.cb_base import BaseCB
@@ -15,7 +16,7 @@ from callbacks.cb_lr_w_cos import LR_SchedCB_W_Cos
 from callbacks.cb_auc import AUC_CB
 
 # from parallel import DataParallelModel, DataParallelCriterion
-from util.util import show_auc, calc_auc_desv, plot_confusion_matrix2
+from util.util import show_auc, calc_auc_desv, save_results, plot_confusion_matrix2
 
 parallel = False
 
@@ -215,7 +216,7 @@ class Trainer():
             return
 
         # Creates a GradScaler once at the beginning of training.
-        scaler = GradScaler()
+        scaler = torch.amp.GradScaler(device='cuda')
 
         device = self.device
 
@@ -243,30 +244,23 @@ class Trainer():
                 # inputs = inputs.to(device)
                 # labels = labels.to(device)
 
+                #print(f'Inputs: {inputs[0, 0, :6, 0]} {inputs.shape}, Labels: {labels}')
+
                 # check performance - 1
                 inputs = inputs.to(device, non_blocking=True)
                 labels = labels.to(device, non_blocking=True)
-
-
-                # print(inputs.mean().item(), inputs.std().item())
-                # print('A ', inputs.shape, inputs[0].mean().item(), inputs[0].std().item(), labels[0].item(), inputs[0])
 
                 if aug_func:
                     # inputs, labels = aug_func(inputs, labels, 'train')
                     inputs = aug_func(inputs)  # .to(device)
                 
-                # print(inputs.mean().item(), inputs.std().item())
-                # for i in range(len(inputs)):
-                #     print(i, inputs[i].mean().item(), inputs[i].std().item())
-                #print('B ', inputs.shape, inputs[0].mean().item(), inputs[0].std().item(), labels[0].item(),  inputs[0])
-
                 # self.optimizer.zero_grad() 
 
                 # check performance - 2
-                self.optimizer.zero_grad(set_to_none=True)                       # clean existing gradients
+                self.optimizer.zero_grad(set_to_none=True)       # clean existing gradients
 
                 # Runs the forward pass with autocasting.
-                with autocast():
+                with torch.amp.autocast("cuda", enabled=True):
                     outputs = self.model(inputs)                 # forward pass
                     loss = self.loss_criterion(outputs, labels)  # compute loss
                 if parallel:
@@ -281,7 +275,7 @@ class Trainer():
                 # train_loss += loss.item() * labels.size(0)           # == mini_batch size
                 train_loss += loss.data * bs_size           # == mini_batch size
 
-                # print(train_loss, loss.item(), loss, labels.size(0), bs_size)
+                #print(f'Loss: {train_loss.item()}, {loss.item()}, {loss}, Size: {labels.size(0)}, {bs_size.item()}')
 
                 # check performance - 4
                 # train_acc += calc_acc(outputs, labels).item()
@@ -477,6 +471,7 @@ class Trainer():
             if model_type = 'normal' : use last saved model
             if model_type = 'best' : use best model
             If we are running test iunference only can pass model through kwargs.
+            Saves predictions file, CSV with file names & numpy with results.
             Uses: loss function from Trainer
             Input: test_dataloader
         """
@@ -488,9 +483,9 @@ class Trainer():
         quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
         aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
 
-        if self.cb.best_metric['AUC'] == 0.3:     # Default Auc, no update
+        if self.cb.best_metric['AUC'] == 0.3:   # Default Auc, no update
             print('Wrong values for AUC test returning zero...')
-            return 0                    # possibly only errors return 0
+            return 0                            # possibly only errors return 0
 
         if model is None:
             if model_type == 'normal':
@@ -507,11 +502,14 @@ class Trainer():
         y_hat_auc, label_auc = [], []
         device = self.device
 
+        # Including support to save prediction for posterior calculations
+        df = pd.DataFrame(columns=['Path', 'Label', 'Prediction'])
+
         with torch.no_grad():
             model.eval()
 
-            # test loop
-            for _, (inputs, labels) in enumerate(test_dataloader):
+            # test loop - load dataloader with 'test_analysis' option
+            for _, (inputs, labels, file) in enumerate(test_dataloader):
                 if isinstance(inputs, dict):
                     for key in ['CC', 'MLO']:
                         inputs[key] = inputs[key].to(device)
@@ -531,9 +529,18 @@ class Trainer():
                 test_acc += calc_acc(outputs, labels).item()
                 batch_val_counter += labels.size(0)
 
-                # Store auc for malignant
-                label_auc = np.append(label_auc, labels.cpu().detach().numpy())
-                y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
+                # Store auc for malignant and predictions for future calculations
+                lab = labels.cpu().detach().numpy()
+                pred = torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy()
+                label_auc = np.append(label_auc, lab)
+                y_hat_auc = np.append(y_hat_auc, pred)
+
+                # save data to dump file later
+                df = df._append({
+                    'Path': file[0].split('/')[-1] if isinstance(file, list) else file.split('/')[-1],  # get only file name
+                    'Label': lab.item() if isinstance(lab, np.ndarray) else lab,
+                    'Prediction': pred.item() if isinstance(pred, np.ndarray) else pred,
+                }, ignore_index=True)
 
                 # enter show result mode
                 if self.mini_batch == 1 and show_results:
@@ -572,6 +579,9 @@ class Trainer():
             auc_file = show_auc(label_auc, y_hat_auc, self.title, 
                                 f'{self.save_path}plots_{self.name}',
                                 show_plt=False)
+            
+        save_results(label_auc, y_hat_auc, df, self.title, 
+                     f'{self.save_path}data_{self.name}')
 
         return auc_final, auc_file
 

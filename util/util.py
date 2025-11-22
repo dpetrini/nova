@@ -4,6 +4,7 @@ import time
 import os
 import itertools
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import average_precision_score, precision_recall_curve
 from sklearn.metrics import auc, roc_curve
@@ -31,6 +32,25 @@ def load_checkpoint(optimizer, model, filename):
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint_dict['optimizer'])
     return epoch, acc  # , best_model
+
+
+def save_results(label_auc, y_hat_auc, df, title, save_path):
+
+    if not save_path.endswith('/'):
+        save_path += '/'
+
+    if os.path.isdir(save_path) is False:
+        os.makedirs(save_path, exist_ok=False)
+
+    # get time for file naming
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%Hh%Mm')
+
+    #gravar resultados numpy
+    if not os.path.isfile(save_path+'labels.npy'):
+        np.save(save_path+'labels', label_auc)   # labels: save if not already
+    np.save(save_path+'predictions_'+str(st), y_hat_auc)
+    df.to_csv(save_path+'results_'+str(st)+'.csv', sep='\t')
 
 
 def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, show_plt=True):

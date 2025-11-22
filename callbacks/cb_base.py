@@ -195,11 +195,14 @@ class BaseCB(Callbacks):
             torch.save(self._model.state_dict(),
                        f'{self.models_dir}/{summary}_last_model{cv_sufix}.pt')
             print(f'cb_base: Last model saved in {self.models_dir}/')
-        if self.save_best:          #    & self.save_best_acc: -> Obsolete
+        if self.save_best and hasattr(self, '_best_model'):          #    & self.save_best_acc: -> Obsolete
             self._best_model_file = f'{self.models_dir}/{summary}_best_model_ACC_0{acc_value[-4:]}{cv_sufix}{self.name_sufix}.pt'
             torch.save(self._best_model.state_dict(),
-                       self._best_model_file)
+                    self._best_model_file)
             print(f'cb_base: Best acc model saved in {self.models_dir}/')
+        else:
+            print('cb_base: no Best acc model. Procceding.')
+            self._best_model_file = 'NA'
 
 
         # plots
