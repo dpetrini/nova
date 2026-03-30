@@ -53,7 +53,8 @@ def save_results(label_auc, y_hat_auc, df, title, save_path):
     df.to_csv(save_path+'results_'+str(st)+'.csv', sep='\t')
 
 
-def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, show_plt=True):
+def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, 
+             show_plt=True, test_dataset=None):
     """Plots AUC and Precision-Recall Curves
     Input: labels and inference outputs as np arrays
     Output: plots on screen and saved in plot_test_auc folder """
@@ -69,6 +70,9 @@ def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, show_plt=True):
 
     if os.path.isdir(plots_dir) is False:
         os.makedirs(plots_dir, exist_ok=False)
+
+    if test_dataset is not None:
+        title = title + '/' + test_dataset
 
     # #### Compute ROC curve and ROC area for each class MALIGN
     fpr = dict()
@@ -93,11 +97,14 @@ def show_auc(label_auc, y_hat_auc, title, save_path, pr=False, show_plt=True):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('[ROC Curve] '+ title)
+    #plt.title('[ROC Curve] '+ title)
+    plt.title('[AUC] '+ title)
     plt.legend(loc="lower right")
     plt.savefig(auc_file)
     if show_plt:
         plt.show()
+
+    plt.close()
 
     if not pr:
         return auc_file

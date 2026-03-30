@@ -482,6 +482,7 @@ class Trainer():
         n_negative = kwargs.get('n') if kwargs.get('n') else False
         quiet = kwargs.get('quiet') if kwargs.get('quiet') else False
         aug_func = kwargs.get('aug_func') if kwargs.get('aug_func') else None
+        test_dataset = kwargs.get('test_dataset') if kwargs.get('test_dataset') else None
 
         if self.cb.best_metric['AUC'] == 0.3:   # Default Auc, no update
             print('Wrong values for AUC test returning zero...')
@@ -553,6 +554,8 @@ class Trainer():
         if not quiet:
             print(f"Model: {model_type} - Test accuracy : {avg_test_acc:.3f}" +
                 f" Test loss : {avg_test_loss:.4f}", end='')
+            if test_dataset is not None: 
+                print(f"\n** Using different dataset for test: {test_dataset} **", end='')
 
         # calculate AUC TEST
         try:
@@ -578,7 +581,7 @@ class Trainer():
         if self.make_plots:
             auc_file = show_auc(label_auc, y_hat_auc, self.title, 
                                 f'{self.save_path}plots_{self.name}',
-                                show_plt=False)
+                                show_plt=False, test_dataset=test_dataset)
             
         save_results(label_auc, y_hat_auc, df, self.title, 
                      f'{self.save_path}data_{self.name}')
@@ -611,6 +614,69 @@ class Trainer():
 
         # calculate AUC TEST
         return roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
+
+
+    def run_test_only_auc(self, test_dataloader, m_positive, n_negative, test_dataset):
+        """ Run test from test_dataloader for only test without training cycle
+            If we are running test iunference only
+            Uses: test data loader
+            Input: test_dataloader
+        """
+        model = self.model
+        y_hat_auc, label_auc = [], []
+        device = self.device
+
+        # Including support to save prediction for posterior calculations
+        df = pd.DataFrame(columns=['Path', 'Label', 'Prediction'])
+
+        with torch.no_grad():
+            model.eval()
+            # Test loop
+            for _, (inputs, labels, file) in enumerate(test_dataloader):
+                inputs = Variable(inputs.to(device))
+                labels = Variable(labels.to(device))
+                outputs = model(inputs)
+
+                # Store prediction for malignant (second class)
+                lab = labels.cpu().detach().numpy()
+                pred = torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy()
+                label_auc = np.append(label_auc, lab)
+                y_hat_auc = np.append(y_hat_auc, pred)
+
+                # label_auc = np.append(label_auc, labels.cpu().detach().numpy())
+                # y_hat_auc = np.append(y_hat_auc, torch.softmax(outputs, dim=1)[:, 1].cpu().detach().numpy())
+
+                # save data to dump file later
+                df = df._append({
+                    'Path': file[0].split('/')[-1] if isinstance(file, list) else file.split('/')[-1],  # get only file name
+                    'Label': lab.item() if isinstance(lab, np.ndarray) else lab,
+                    'Prediction': pred.item() if isinstance(pred, np.ndarray) else pred,
+                }, ignore_index=True)
+
+        # calculate AUC TEST
+        try:
+            auc_mal_val = roc_auc_score(label_auc.ravel(), y_hat_auc.ravel())
+        except:
+            auc_mal_val = 0
+            print('Bad AUC, probably bad auc values during training... skip it!')
+
+        if m_positive and n_negative:
+            auc_final = f'{auc_mal_val:.4f}±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}'
+            # print(f'±{calc_auc_desv(m_positive, n_negative, auc_mal_val):.4f}')
+            print(f' AUC Malignant: {auc_final}')
+        else:
+            auc_final = f'{auc_mal_val:.4f}'
+
+        auc_file = ''
+        if self.make_plots:
+            auc_file = show_auc(label_auc, y_hat_auc, self.title, 
+                                f'{self.save_path}plots_{self.name}',
+                                show_plt=False, test_dataset=test_dataset)
+            
+        save_results(label_auc, y_hat_auc, df, self.title, 
+                     f'{self.save_path}data_{self.name}')
+
+        return auc_final, auc_file
 
 
     def run_test_cm(self, test_dataloader, model_type, **kwargs):

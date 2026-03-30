@@ -41,21 +41,13 @@ class LR_SchedCB_W_Cyc_Cos(Callbacks):
         self.print = optim_args['print'] if 'print' in optim_args else False
         self.adamw = optim_args['AdamW'] if 'AdamW' in optim_args else False
 
-# def lr_cos(epoch, T, delta, lr_base):
-#     n = 1/2*(delta)*(1+math.cos(epoch*math.pi/T)) + lr_base
-#     return n
-
-
-        if epoch < 1: epoch = 1
-
-        # if epoch == 1:
-        #     for param_group in optimizer.param_groups:
-        #         self.base_lr = param_group['lr']        # get original LR from MAIN - one group
+        if epoch < 1: 
+            epoch = 1
 
         if epoch <= self.warmup:
             self.next_lr = epoch * self.base_lr/self.warmup
         else:
-            # self.next_lr = 1/2*(1+math.cos((epoch-self.warmup)*math.pi/(self.epochs-self.warmup)))*self.base_lr
+            assert self.T != 0, '[Zero division] Period with zero value, check input.'
             self.next_lr = 1/2*(self.delta)*(1+math.cos((epoch-self.warmup)*math.pi/self.T)) + self.base_lr - self.delta/2
 
         if self.adamw:
