@@ -547,7 +547,6 @@ class Trainer():
                 # print('pred: ', pred[0].item())
 
                 # save data to dump file later
-                print(file)
                 df = df._append({
                     'Path': file[0].split('/')[-1] if isinstance(file, list) or isinstance(file, tuple) else file.split('/')[-1],  # get only file name
                     'Label': lab.item() if isinstance(lab, np.ndarray) else lab,
