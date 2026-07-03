@@ -259,6 +259,10 @@ class Trainer():
                 # check performance - 2
                 self.optimizer.zero_grad(set_to_none=True)       # clean existing gradients
 
+                # print('1', inputs.dtype)
+                # inputs = inputs.float().cuda()
+                # print('2', inputs.dtype)
+
                 # Runs the forward pass with autocasting.
                 with torch.amp.autocast("cuda", enabled=True):
                     outputs = self.model(inputs)                 # forward pass
@@ -536,7 +540,14 @@ class Trainer():
                 label_auc = np.append(label_auc, lab)
                 y_hat_auc = np.append(y_hat_auc, pred)
 
+                # print('label: ', lab, lab.dtype)
+                # print('label: ', lab[0].item())
+
+                # print('pred: ', pred, pred.dtype)
+                # print('pred: ', pred[0].item())
+
                 # save data to dump file later
+                print(file)
                 df = df._append({
                     'Path': file[0].split('/')[-1] if isinstance(file, list) else file.split('/')[-1],  # get only file name
                     'Label': lab.item() if isinstance(lab, np.ndarray) else lab,
